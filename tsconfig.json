@@ -1,0 +1,3 @@
+{
+  "extends": "@ev-charger-locator/config/tsconfig.base.json"
+}

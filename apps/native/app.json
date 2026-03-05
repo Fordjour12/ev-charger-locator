@@ -1,0 +1,17 @@
+{
+  "expo": {
+    "scheme": "ev-charger-locator",
+    "userInterfaceStyle": "automatic",
+    "orientation": "default",
+    "web": {
+      "bundler": "metro"
+    },
+    "name": "ev-charger-locator",
+    "slug": "ev-charger-locator",
+    "plugins": ["expo-font"],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    }
+  }
+}
