@@ -1,0 +1,2277 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ChargeFIND — System Architecture</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=JetBrains+Mono:wght@300;400;500;700&family=Syne:wght@400;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      :root {
+        --bg: #05080f;
+        --bg2: #090d1a;
+        --bg3: #0d1222;
+        --bg4: #111828;
+        --border: rgba(255, 255, 255, 0.06);
+        --border2: rgba(255, 255, 255, 0.11);
+        --cyan: #00e5ff;
+        --green: #00e676;
+        --yellow: #ffd600;
+        --orange: #ff9f1c;
+        --purple: #b388ff;
+        --pink: #ff6b9d;
+        --red: #ff3d57;
+        --teal: #00bfa5;
+        --text: #d8e2ff;
+        --text-dim: rgba(216, 226, 255, 0.45);
+        --text-faint: rgba(216, 226, 255, 0.2);
+      }
+      html,
+      body {
+        min-height: 100%;
+        background: var(--bg);
+        color: var(--text);
+        font-family: "Syne", sans-serif;
+        overflow-x: hidden;
+      }
+      ::-webkit-scrollbar {
+        width: 5px;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 99px;
+      }
+
+      /* ── PAGE ── */
+      .page {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 48px 40px 80px;
+      }
+
+      /* ── HEADER ── */
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        margin-bottom: 56px;
+        padding-bottom: 32px;
+        border-bottom: 1px solid var(--border2);
+      }
+      .header-left {
+      }
+      .logo {
+        font-family: "Barlow Condensed", sans-serif;
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.18em;
+        color: var(--cyan);
+        text-transform: uppercase;
+        margin-bottom: 10px;
+      }
+      .doc-title {
+        font-family: "Barlow Condensed", sans-serif;
+        font-size: 52px;
+        font-weight: 900;
+        letter-spacing: 0.03em;
+        line-height: 1;
+        color: var(--text);
+      }
+      .doc-title span {
+        color: var(--cyan);
+      }
+      .doc-sub {
+        font-size: 14px;
+        color: var(--text-dim);
+        margin-top: 8px;
+        letter-spacing: 0.01em;
+      }
+      .header-meta {
+        text-align: right;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .meta-item {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 10px;
+        color: var(--text-faint);
+        letter-spacing: 0.08em;
+      }
+      .meta-item strong {
+        color: var(--text-dim);
+      }
+      .version-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 14px;
+        border-radius: 6px;
+        background: rgba(0, 229, 255, 0.08);
+        border: 1px solid rgba(0, 229, 255, 0.2);
+        font-family: "JetBrains Mono", monospace;
+        font-size: 11px;
+        color: var(--cyan);
+      }
+
+      /* ── LEGEND ── */
+      .legend {
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+        margin-bottom: 40px;
+        padding: 16px 20px;
+        background: var(--bg2);
+        border-radius: 12px;
+        border: 1px solid var(--border);
+      }
+      .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 11px;
+        color: var(--text-dim);
+      }
+      .legend-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+      }
+      .legend-diamond {
+        width: 10px;
+        height: 10px;
+        transform: rotate(45deg);
+      }
+      .legend-line {
+        width: 24px;
+        height: 2px;
+      }
+      .legend-dline {
+        width: 24px;
+        height: 2px;
+        border-top: 2px dashed currentColor;
+      }
+
+      /* ── ARCH GRID ── */
+      .arch {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+      }
+
+      /* ── LAYER ── */
+      .layer {
+        position: relative;
+        margin-bottom: 0;
+      }
+      .layer-label {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 9px;
+        font-weight: 700;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        writing-mode: vertical-rl;
+        text-orientation: mixed;
+        position: absolute;
+        left: -36px;
+        top: 50%;
+        transform: translateY(-50%) rotate(180deg);
+        color: var(--text-faint);
+      }
+      .layer-body {
+        border: 1px solid var(--border2);
+        border-radius: 18px;
+        padding: 28px 28px 24px;
+        position: relative;
+        margin-bottom: 0;
+        background: var(--bg2);
+      }
+      .layer-title {
+        font-family: "Barlow Condensed", sans-serif;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        padding: 4px 10px;
+        border-radius: 5px;
+        display: inline-block;
+        margin-bottom: 20px;
+      }
+
+      /* ── CARDS ── */
+      .cards {
+        display: flex;
+        gap: 14px;
+        flex-wrap: wrap;
+      }
+      .card {
+        flex: 1;
+        min-width: 160px;
+        border-radius: 14px;
+        padding: 18px 16px 16px;
+        border: 1px solid;
+        position: relative;
+        cursor: default;
+        transition:
+          transform 0.2s,
+          box-shadow 0.2s;
+      }
+      .card:hover {
+        transform: translateY(-2px);
+      }
+      .card-icon {
+        font-size: 20px;
+        margin-bottom: 10px;
+        display: block;
+      }
+      .card-name {
+        font-family: "Barlow Condensed", sans-serif;
+        font-size: 16px;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        margin-bottom: 5px;
+        line-height: 1.1;
+      }
+      .card-tech {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 9px;
+        font-weight: 500;
+        letter-spacing: 0.08em;
+        margin-bottom: 10px;
+      }
+      .card-features {
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+      }
+      .card-features li {
+        font-size: 10px;
+        color: var(--text-dim);
+        padding-left: 10px;
+        position: relative;
+        line-height: 1.4;
+      }
+      .card-features li::before {
+        content: "—";
+        position: absolute;
+        left: 0;
+        color: var(--text-faint);
+        font-size: 9px;
+      }
+      .card-badge {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 8px;
+        font-weight: 700;
+        padding: 2px 6px;
+        border-radius: 4px;
+        letter-spacing: 0.08em;
+      }
+
+      /* ── CONNECTOR ARROWS ── */
+      .connector {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 36px;
+        gap: 16px;
+        position: relative;
+        margin: 0;
+      }
+      .connector-line {
+        flex: 1;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, var(--border2), transparent);
+      }
+      .connector-center {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .flow-badge {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 9px;
+        font-weight: 500;
+        padding: 3px 10px;
+        border-radius: 20px;
+        border: 1px solid;
+        letter-spacing: 0.06em;
+        white-space: nowrap;
+      }
+      .arrow-down {
+        width: 1px;
+        height: 36px;
+        margin: 0 auto;
+        background: linear-gradient(180deg, var(--border2), transparent);
+        position: relative;
+      }
+      .arrow-down::after {
+        content: "▼";
+        position: absolute;
+        bottom: -2px;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 7px;
+        color: var(--border2);
+      }
+
+      /* ── DATA FLOW SECTION ── */
+      .flow-section {
+        margin-top: 56px;
+      }
+      .section-header {
+        margin-bottom: 28px;
+      }
+      .section-title {
+        font-family: "Barlow Condensed", sans-serif;
+        font-size: 28px;
+        font-weight: 900;
+        letter-spacing: 0.04em;
+        margin-bottom: 6px;
+      }
+      .section-sub {
+        font-size: 12px;
+        color: var(--text-dim);
+      }
+
+      .flow-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+      }
+      .flow-card {
+        background: var(--bg2);
+        border: 1px solid var(--border2);
+        border-radius: 16px;
+        padding: 22px 22px 18px;
+      }
+      .flow-card-title {
+        font-family: "Barlow Condensed", sans-serif;
+        font-size: 16px;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        margin-bottom: 14px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .flow-steps {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+      }
+      .flow-step {
+        display: flex;
+        gap: 14px;
+        align-items: flex-start;
+        padding: 10px 0;
+        border-bottom: 1px solid var(--border);
+      }
+      .flow-step:last-child {
+        border-bottom: none;
+      }
+      .flow-num {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 10px;
+        font-weight: 700;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        margin-top: 1px;
+      }
+      .flow-text {
+        font-size: 11px;
+        color: var(--text-dim);
+        line-height: 1.5;
+      }
+      .flow-text strong {
+        color: var(--text);
+        font-weight: 600;
+      }
+
+      /* ── DB SCHEMA ── */
+      .schema-section {
+        margin-top: 56px;
+      }
+      .schema-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+      }
+      .schema-table {
+        background: var(--bg2);
+        border: 1px solid var(--border2);
+        border-radius: 14px;
+        overflow: hidden;
+      }
+      .schema-thead {
+        padding: 12px 14px;
+        border-bottom: 1px solid var(--border2);
+        font-family: "Barlow Condensed", sans-serif;
+        font-size: 14px;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .schema-rows {
+      }
+      .schema-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 7px 14px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        font-size: 10px;
+      }
+      .schema-row:last-child {
+        border-bottom: none;
+      }
+      .schema-col {
+        font-family: "JetBrains Mono", monospace;
+        color: var(--text-dim);
+      }
+      .schema-col.pk {
+        color: var(--yellow);
+      }
+      .schema-col.fk {
+        color: var(--purple);
+      }
+      .schema-type {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 9px;
+        color: var(--text-faint);
+      }
+
+      /* ── REALTIME SECTION ── */
+      .realtime-section {
+        margin-top: 56px;
+      }
+      .realtime-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 16px;
+      }
+      .rt-card {
+        background: var(--bg2);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 20px 18px;
+      }
+      .rt-title {
+        font-family: "Barlow Condensed", sans-serif;
+        font-size: 15px;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .rt-items {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .rt-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 10px;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.03);
+        font-size: 11px;
+        color: var(--text-dim);
+      }
+      .rt-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+
+      /* ── TECH STACK ── */
+      .stack-section {
+        margin-top: 56px;
+      }
+      .stack-grid {
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        gap: 12px;
+      }
+      .stack-item {
+        background: var(--bg2);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 16px 12px;
+        text-align: center;
+      }
+      .stack-emoji {
+        font-size: 22px;
+        margin-bottom: 8px;
+        display: block;
+      }
+      .stack-name {
+        font-family: "Barlow Condensed", sans-serif;
+        font-size: 13px;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        margin-bottom: 3px;
+      }
+      .stack-role {
+        font-size: 9px;
+        color: var(--text-faint);
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        font-family: "JetBrains Mono", monospace;
+      }
+
+      /* ── INFRA ── */
+      .infra-section {
+        margin-top: 56px;
+      }
+      .infra-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+      }
+      .infra-card {
+        background: var(--bg2);
+        border: 1px solid var(--border2);
+        border-radius: 16px;
+        padding: 22px;
+      }
+      .infra-title {
+        font-family: "Barlow Condensed", sans-serif;
+        font-size: 15px;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .infra-items {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .infra-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 9px 12px;
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 8px;
+        font-size: 11px;
+      }
+      .infra-label {
+        color: var(--text-dim);
+      }
+      .infra-val {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 10px;
+      }
+
+      /* ── FOOTER ── */
+      .footer {
+        margin-top: 72px;
+        padding-top: 28px;
+        border-top: 1px solid var(--border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .footer-left {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 10px;
+        color: var(--text-faint);
+        letter-spacing: 0.1em;
+      }
+      .footer-right {
+        display: flex;
+        gap: 20px;
+      }
+      .footer-stat {
+        text-align: right;
+      }
+      .footer-stat-val {
+        font-family: "Barlow Condensed", sans-serif;
+        font-size: 20px;
+        font-weight: 800;
+        color: var(--cyan);
+      }
+      .footer-stat-label {
+        font-size: 9px;
+        color: var(--text-faint);
+        font-family: "JetBrains Mono", monospace;
+        letter-spacing: 0.08em;
+      }
+
+      /* ── NOISE OVERLAY ── */
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+        pointer-events: none;
+        z-index: 0;
+        opacity: 0.4;
+      }
+      .page {
+        position: relative;
+        z-index: 1;
+      }
+
+      /* Color themes per layer */
+      .layer-clients .layer-body {
+        background: linear-gradient(135deg, rgba(0, 229, 255, 0.04), var(--bg2));
+        border-color: rgba(0, 229, 255, 0.15);
+      }
+      .layer-gateway .layer-body {
+        background: linear-gradient(135deg, rgba(255, 214, 0, 0.04), var(--bg2));
+        border-color: rgba(255, 214, 0, 0.12);
+      }
+      .layer-services .layer-body {
+        background: linear-gradient(135deg, rgba(0, 230, 118, 0.04), var(--bg2));
+        border-color: rgba(0, 230, 118, 0.12);
+      }
+      .layer-realtime .layer-body {
+        background: linear-gradient(135deg, rgba(179, 136, 255, 0.04), var(--bg2));
+        border-color: rgba(179, 136, 255, 0.12);
+      }
+      .layer-data .layer-body {
+        background: linear-gradient(135deg, rgba(255, 107, 53, 0.04), var(--bg2));
+        border-color: rgba(255, 107, 53, 0.12);
+      }
+      .layer-external .layer-body {
+        background: linear-gradient(135deg, rgba(255, 61, 87, 0.04), var(--bg2));
+        border-color: rgba(255, 61, 87, 0.1);
+      }
+
+      /* Card color themes */
+      .c-cyan {
+        background: rgba(0, 229, 255, 0.05);
+        border-color: rgba(0, 229, 255, 0.2);
+      }
+      .c-cyan .card-name {
+        color: var(--cyan);
+      }
+      .c-cyan .card-tech {
+        color: rgba(0, 229, 255, 0.5);
+      }
+      .c-cyan:hover {
+        box-shadow: 0 8px 32px rgba(0, 229, 255, 0.1);
+      }
+
+      .c-yellow {
+        background: rgba(255, 214, 0, 0.04);
+        border-color: rgba(255, 214, 0, 0.18);
+      }
+      .c-yellow .card-name {
+        color: var(--yellow);
+      }
+      .c-yellow .card-tech {
+        color: rgba(255, 214, 0, 0.5);
+      }
+      .c-yellow:hover {
+        box-shadow: 0 8px 32px rgba(255, 214, 0, 0.08);
+      }
+
+      .c-green {
+        background: rgba(0, 230, 118, 0.05);
+        border-color: rgba(0, 230, 118, 0.2);
+      }
+      .c-green .card-name {
+        color: var(--green);
+      }
+      .c-green .card-tech {
+        color: rgba(0, 230, 118, 0.5);
+      }
+      .c-green:hover {
+        box-shadow: 0 8px 32px rgba(0, 230, 118, 0.1);
+      }
+
+      .c-purple {
+        background: rgba(179, 136, 255, 0.05);
+        border-color: rgba(179, 136, 255, 0.2);
+      }
+      .c-purple .card-name {
+        color: var(--purple);
+      }
+      .c-purple .card-tech {
+        color: rgba(179, 136, 255, 0.5);
+      }
+      .c-purple:hover {
+        box-shadow: 0 8px 32px rgba(179, 136, 255, 0.1);
+      }
+
+      .c-orange {
+        background: rgba(255, 159, 28, 0.05);
+        border-color: rgba(255, 159, 28, 0.2);
+      }
+      .c-orange .card-name {
+        color: var(--orange);
+      }
+      .c-orange .card-tech {
+        color: rgba(255, 159, 28, 0.5);
+      }
+      .c-orange:hover {
+        box-shadow: 0 8px 32px rgba(255, 159, 28, 0.1);
+      }
+
+      .c-pink {
+        background: rgba(255, 107, 157, 0.05);
+        border-color: rgba(255, 107, 157, 0.18);
+      }
+      .c-pink .card-name {
+        color: var(--pink);
+      }
+      .c-pink .card-tech {
+        color: rgba(255, 107, 157, 0.5);
+      }
+      .c-pink:hover {
+        box-shadow: 0 8px 32px rgba(255, 107, 157, 0.1);
+      }
+
+      .c-teal {
+        background: rgba(0, 191, 165, 0.05);
+        border-color: rgba(0, 191, 165, 0.2);
+      }
+      .c-teal .card-name {
+        color: var(--teal);
+      }
+      .c-teal .card-tech {
+        color: rgba(0, 191, 165, 0.5);
+      }
+      .c-teal:hover {
+        box-shadow: 0 8px 32px rgba(0, 191, 165, 0.1);
+      }
+
+      .c-red {
+        background: rgba(255, 61, 87, 0.05);
+        border-color: rgba(255, 61, 87, 0.18);
+      }
+      .c-red .card-name {
+        color: var(--red);
+      }
+      .c-red .card-tech {
+        color: rgba(255, 61, 87, 0.5);
+      }
+      .c-red:hover {
+        box-shadow: 0 8px 32px rgba(255, 61, 87, 0.1);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <!-- HEADER -->
+      <div class="header">
+        <div class="header-left">
+          <div class="logo">⚡ ChargeFIND · Technical Specification</div>
+          <div class="doc-title">SYSTEM<br /><span>ARCHITECTURE</span></div>
+          <div class="doc-sub">
+            Community-Verified EV & Motor Battery Station Discovery Platform
+          </div>
+        </div>
+        <div class="header-meta">
+          <div class="version-badge">v2.1 · COMMUNITY-VERIFIED</div>
+          <div class="meta-item" style="margin-top: 12px">
+            <strong>Stack:</strong> React Native · Convex · TanStack
+          </div>
+          <div class="meta-item"><strong>Pattern:</strong> Community-verified · Crowdsourced</div>
+          <div class="meta-item"><strong>Deployment:</strong> Edge-first, multi-region</div>
+          <div class="meta-item"><strong>Revised:</strong> March 2026</div>
+        </div>
+      </div>
+
+      <!-- LEGEND -->
+      <div class="legend">
+        <div
+          style="
+            font-family: &quot;JetBrains Mono&quot;, monospace;
+            font-size: 9px;
+            color: var(--text-faint);
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            margin-right: 8px;
+          "
+        >
+          Legend
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background: var(--cyan)"></div>
+          Client Layer
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background: var(--yellow)"></div>
+          API Gateway
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background: var(--green)"></div>
+          Core Services
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background: var(--purple)"></div>
+          Realtime Engine
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background: var(--orange)"></div>
+          Data Layer
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background: var(--red)"></div>
+          External APIs
+        </div>
+        <div class="legend-item" style="margin-left: 16px">
+          <div class="legend-line" style="background: var(--green)"></div>
+          Sync call
+        </div>
+        <div class="legend-item">
+          <div class="legend-dline" style="color: var(--purple)"></div>
+          WebSocket / event
+        </div>
+        <div class="legend-item">
+          <div class="legend-line" style="background: var(--text-faint)"></div>
+          Internal queue
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════════════
+       ARCHITECTURE LAYERS
+  ══════════════════════════════════════════════ -->
+      <div class="arch" style="padding-left: 48px">
+        <!-- 1 · CLIENT LAYER -->
+        <div class="layer layer-clients">
+          <div class="layer-body">
+            <div class="layer-title" style="background: rgba(0, 229, 255, 0.1); color: var(--cyan)">
+              ① Client Layer
+            </div>
+            <div class="cards">
+              <div class="card c-cyan">
+                <span class="card-icon">📱</span>
+                <div class="card-name">Mobile App</div>
+                <div class="card-tech">React Native · Expo · TanStack Router</div>
+                <ul class="card-features">
+                  <li>Map discovery (EV + Moto)</li>
+                  <li>Offline-capable station cache</li>
+                  <li>Push notification handler</li>
+                  <li>Vehicle profile & session timer</li>
+                  <li>Check-in & community reporting</li>
+                </ul>
+                <div
+                  class="card-badge"
+                  style="
+                    background: rgba(0, 229, 255, 0.1);
+                    color: var(--cyan);
+                    border: 1px solid rgba(0, 229, 255, 0.2);
+                  "
+                >
+                  iOS · Android
+                </div>
+              </div>
+              <div class="card c-cyan">
+                <span class="card-icon">🌐</span>
+                <div class="card-name">Web App</div>
+                <div class="card-tech">React · TanStack Router · Vite</div>
+                <ul class="card-features">
+                  <li>Full desktop 3-panel layout</li>
+                  <li>SVG map + list view</li>
+                  <li>Operator dashboard portal</li>
+                  <li>Analytics & reporting UI</li>
+                  <li>Sponsored listing management</li>
+                </ul>
+                <div
+                  class="card-badge"
+                  style="
+                    background: rgba(0, 229, 255, 0.1);
+                    color: var(--cyan);
+                    border: 1px solid rgba(0, 229, 255, 0.2);
+                  "
+                >
+                  PWA
+                </div>
+              </div>
+              <div class="card c-cyan">
+                <span class="card-icon">⌚</span>
+                <div class="card-name">Wearable</div>
+                <div class="card-tech">watchOS · WearOS · React Native</div>
+                <ul class="card-features">
+                  <li>Nearby station glance</li>
+                  <li>Active session countdown</li>
+                  <li>Charge complete haptic alert</li>
+                  <li>Quick bookmark from wrist</li>
+                </ul>
+                <div
+                  class="card-badge"
+                  style="
+                    background: rgba(0, 229, 255, 0.1);
+                    color: var(--cyan);
+                    border: 1px solid rgba(0, 229, 255, 0.2);
+                  "
+                >
+                  Future
+                </div>
+              </div>
+              <div class="card c-cyan">
+                <span class="card-icon">🚗</span>
+                <div class="card-name">In-Car</div>
+                <div class="card-tech">Android Auto · CarPlay · HTML5</div>
+                <ul class="card-features">
+                  <li>Voice-guided station search</li>
+                  <li>Turn-by-turn to charger</li>
+                  <li>Live slot availability HUD</li>
+                  <li>One-tap start session</li>
+                </ul>
+                <div
+                  class="card-badge"
+                  style="
+                    background: rgba(0, 229, 255, 0.1);
+                    color: var(--cyan);
+                    border: 1px solid rgba(0, 229, 255, 0.2);
+                  "
+                >
+                  Future
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- connector -->
+        <div class="connector">
+          <div class="connector-line"></div>
+          <div class="connector-center">
+            <div
+              class="flow-badge"
+              style="
+                color: var(--cyan);
+                border-color: rgba(0, 229, 255, 0.25);
+                background: rgba(0, 229, 255, 0.06);
+              "
+            >
+              HTTPS · REST · WebSocket · GraphQL Subscriptions
+            </div>
+          </div>
+          <div class="connector-line"></div>
+        </div>
+
+        <!-- 2 · API GATEWAY -->
+        <div class="layer layer-gateway">
+          <div class="layer-body">
+            <div
+              class="layer-title"
+              style="background: rgba(255, 214, 0, 0.08); color: var(--yellow)"
+            >
+              ② API Gateway & Edge
+            </div>
+            <div class="cards">
+              <div class="card c-yellow">
+                <span class="card-icon">🛡️</span>
+                <div class="card-name">Auth Service</div>
+                <div class="card-tech">Clerk · JWT · OAuth2</div>
+                <ul class="card-features">
+                  <li>Social login (Google, Apple)</li>
+                  <li>Anonymous guest sessions</li>
+                  <li>Operator role management</li>
+                  <li>API key issuance for partners</li>
+                  <li>Session refresh & revocation</li>
+                </ul>
+              </div>
+              <div class="card c-yellow">
+                <span class="card-icon">🔀</span>
+                <div class="card-name">API Gateway</div>
+                <div class="card-tech">Convex HTTP · Cloudflare Workers</div>
+                <ul class="card-features">
+                  <li>Rate limiting per user/IP</li>
+                  <li>Request validation & schema</li>
+                  <li>Response caching at edge</li>
+                  <li>A/B test flag injection</li>
+                  <li>Geo-routing to nearest region</li>
+                </ul>
+              </div>
+              <div class="card c-yellow">
+                <span class="card-icon">📡</span>
+                <div class="card-name">CDN & Edge Cache</div>
+                <div class="card-tech">Cloudflare CDN · R2 Storage</div>
+                <ul class="card-features">
+                  <li>Static asset delivery &lt;20ms</li>
+                  <li>Station photo CDN</li>
+                  <li>Map tile caching</li>
+                  <li>Edge-computed geo-queries</li>
+                </ul>
+              </div>
+              <div class="card c-yellow">
+                <span class="card-icon">🔔</span>
+                <div class="card-name">Push Gateway</div>
+                <div class="card-tech">Expo Push · APNs · FCM</div>
+                <ul class="card-features">
+                  <li>Charge complete alerts</li>
+                  <li>Queue position updates</li>
+                  <li>Pricing change notifications</li>
+                  <li>Batch digest delivery</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- connector -->
+        <div class="connector">
+          <div class="connector-line"></div>
+          <div class="connector-center">
+            <div
+              class="flow-badge"
+              style="
+                color: var(--green);
+                border-color: rgba(0, 230, 118, 0.25);
+                background: rgba(0, 230, 118, 0.06);
+              "
+            >
+              Internal RPC · Convex Mutations · Scheduled Functions
+            </div>
+          </div>
+          <div class="connector-line"></div>
+        </div>
+
+        <!-- 3 · CORE SERVICES -->
+        <div class="layer layer-services">
+          <div class="layer-body">
+            <div
+              class="layer-title"
+              style="background: rgba(0, 230, 118, 0.08); color: var(--green)"
+            >
+              ③ Core Services
+            </div>
+            <div class="cards">
+              <div class="card c-green">
+                <span class="card-icon">📍</span>
+                <div class="card-name">Station Service</div>
+                <div class="card-tech">Convex Functions · Geo Queries</div>
+                <ul class="card-features">
+                  <li>Geo-spatial radius search</li>
+                  <li>Connector & type filtering</li>
+                  <li>EV + Moto station CRUD</li>
+                  <li>Community reliability score</li>
+                  <li>Last-verified timestamp sync</li>
+                  <li>Station suggestion review</li>
+                </ul>
+              </div>
+              <div class="card c-green">
+                <span class="card-icon">⚡</span>
+                <div class="card-name">Session Service</div>
+                <div class="card-tech">Convex · State Machine</div>
+                <ul class="card-features">
+                  <li>User-reported charge sessions</li>
+                  <li>Manual check-in / check-out</li>
+                  <li>Session duration tracking</li>
+                  <li>Session history log</li>
+                  <li>CO₂ saved estimation</li>
+                  <li>Battery swap event logging</li>
+                </ul>
+              </div>
+              <div class="card c-green">
+                <span class="card-icon">👥</span>
+                <div class="card-name">Community Service</div>
+                <div class="card-tech">Convex · Moderation API</div>
+                <ul class="card-features">
+                  <li>Check-in verification</li>
+                  <li>Issue report triage</li>
+                  <li>Photo upload & moderation</li>
+                  <li>Reputation score engine</li>
+                  <li>Station suggestion pipeline</li>
+                  <li>Operator response workflow</li>
+                </ul>
+              </div>
+              <div class="card c-green">
+                <span class="card-icon">🚗</span>
+                <div class="card-name">Vehicle Service</div>
+                <div class="card-tech">Convex · Manual Profile</div>
+                <ul class="card-features">
+                  <li>Manual vehicle profile setup</li>
+                  <li>User-selected connector types</li>
+                  <li>User-entered range estimate</li>
+                  <li>Profile-based station filtering</li>
+                  <li>EV & moto profile support</li>
+                </ul>
+              </div>
+              <div class="card c-green">
+                <span class="card-icon">🗺️</span>
+                <div class="card-name">Route Service</div>
+                <div class="card-tech">Mapbox Directions · OSRM</div>
+                <ul class="card-features">
+                  <li>A-to-B route rendering</li>
+                  <li>Manual range input by user</li>
+                  <li>Stations along route query</li>
+                  <li>Detour distance ranking</li>
+                </ul>
+              </div>
+              <div class="card c-green">
+                <span class="card-icon">📊</span>
+                <div class="card-name">Analytics Service</div>
+                <div class="card-tech">Convex · PostHog · BigQuery</div>
+                <ul class="card-features">
+                  <li>Station view / click events</li>
+                  <li>Search query patterns</li>
+                  <li>Bookmark & direction clicks</li>
+                  <li>Carbon offset calculation</li>
+                  <li>Operator usage dashboards</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- connector -->
+        <div class="connector">
+          <div
+            class="connector-line"
+            style="border-top: 1px dashed rgba(179, 136, 255, 0.3); height: 1px; background: none"
+          ></div>
+          <div class="connector-center">
+            <div
+              class="flow-badge"
+              style="
+                color: var(--purple);
+                border-color: rgba(179, 136, 255, 0.25);
+                background: rgba(179, 136, 255, 0.06);
+              "
+            >
+              WebSocket · Convex Reactive Queries · SSE · Event Bus
+            </div>
+          </div>
+          <div
+            class="connector-line"
+            style="border-top: 1px dashed rgba(179, 136, 255, 0.3); height: 1px; background: none"
+          ></div>
+        </div>
+
+        <!-- 4 · REALTIME ENGINE -->
+        <div class="layer layer-realtime">
+          <div class="layer-body">
+            <div
+              class="layer-title"
+              style="background: rgba(179, 136, 255, 0.08); color: var(--purple)"
+            >
+              ④ Realtime Engine
+            </div>
+            <div class="cards">
+              <div class="card c-purple">
+                <span class="card-icon">👥</span>
+                <div class="card-name">Signal Processor</div>
+                <div class="card-tech">Convex Functions · Scoring Engine</div>
+                <ul class="card-features">
+                  <li>Aggregates check-ins & reports</li>
+                  <li>Weights signals by user reputation</li>
+                  <li>Detects status contradictions</li>
+                  <li>Staleness decay over time</li>
+                  <li>Triggers re-verification prompts</li>
+                </ul>
+              </div>
+              <div class="card c-purple">
+                <span class="card-icon">🟣</span>
+                <div class="card-name">Convex Reactive</div>
+                <div class="card-tech">Convex Subscriptions · Mutations</div>
+                <ul class="card-features">
+                  <li>Client query subscriptions</li>
+                  <li>Optimistic UI updates</li>
+                  <li>Conflict-free state sync</li>
+                  <li>Offline queue reconcile</li>
+                  <li>Sub-100ms propagation</li>
+                </ul>
+              </div>
+              <div class="card c-purple">
+                <span class="card-icon">📬</span>
+                <div class="card-name">Queue Engine</div>
+                <div class="card-tech">Convex Jobs · Bull MQ</div>
+                <ul class="card-features">
+                  <li>Virtual waitlist management</li>
+                  <li>Position recalculation</li>
+                  <li>Notify-when-free triggers</li>
+                  <li>Timeout & abandon handling</li>
+                </ul>
+              </div>
+              <div class="card c-purple">
+                <span class="card-icon">🌡️</span>
+                <div class="card-name">Status Aggregator</div>
+                <div class="card-tech">Convex · Redis Streams</div>
+                <ul class="card-features">
+                  <li>Community-only status merging</li>
+                  <li>Conflict resolution by recency</li>
+                  <li>High-trust user signal boost</li>
+                  <li>Staleness decay scoring</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- connector -->
+        <div class="connector">
+          <div class="connector-line"></div>
+          <div class="connector-center">
+            <div
+              class="flow-badge"
+              style="
+                color: var(--orange);
+                border-color: rgba(255, 159, 28, 0.25);
+                background: rgba(255, 159, 28, 0.06);
+              "
+            >
+              SQL · Vector Search · Time-series · Object Storage · Cache
+            </div>
+          </div>
+          <div class="connector-line"></div>
+        </div>
+
+        <!-- 5 · DATA LAYER -->
+        <div class="layer layer-data">
+          <div class="layer-body">
+            <div
+              class="layer-title"
+              style="background: rgba(255, 159, 28, 0.08); color: var(--orange)"
+            >
+              ⑤ Data Layer
+            </div>
+            <div class="cards">
+              <div class="card c-orange">
+                <span class="card-icon">🗄️</span>
+                <div class="card-name">Primary DB</div>
+                <div class="card-tech">Convex DB · PostgreSQL + PostGIS</div>
+                <ul class="card-features">
+                  <li>Stations, users, sessions</li>
+                  <li>Geo-indexed location queries</li>
+                  <li>ACID transactions</li>
+                  <li>Automatic replication</li>
+                </ul>
+              </div>
+              <div class="card c-orange">
+                <span class="card-icon">⚡</span>
+                <div class="card-name">Cache Layer</div>
+                <div class="card-tech">Redis · Upstash · Edge KV</div>
+                <ul class="card-features">
+                  <li>Live slot count cache</li>
+                  <li>Session state hot store</li>
+                  <li>Rate limit counters</li>
+                  <li>Geo-search result cache</li>
+                </ul>
+              </div>
+              <div class="card c-orange">
+                <span class="card-icon">📈</span>
+                <div class="card-name">Time-Series DB</div>
+                <div class="card-tech">InfluxDB · TimescaleDB</div>
+                <ul class="card-features">
+                  <li>Station uptime history</li>
+                  <li>Slot occupancy trends</li>
+                  <li>Pricing change logs</li>
+                  <li>Usage pattern analysis</li>
+                </ul>
+              </div>
+              <div class="card c-orange">
+                <span class="card-icon">🔍</span>
+                <div class="card-name">Search Index</div>
+                <div class="card-tech">Algolia · pgvector</div>
+                <ul class="card-features">
+                  <li>Full-text station search</li>
+                  <li>Vector similarity (amenities)</li>
+                  <li>Fuzzy address matching</li>
+                  <li>Faceted connector filtering</li>
+                </ul>
+              </div>
+              <div class="card c-orange">
+                <span class="card-icon">🗃️</span>
+                <div class="card-name">Object Storage</div>
+                <div class="card-tech">Cloudflare R2 · S3-compatible</div>
+                <ul class="card-features">
+                  <li>User-uploaded station photos</li>
+                  <li>Processed thumbnails</li>
+                  <li>Operator assets & logos</li>
+                  <li>Export archives</li>
+                </ul>
+              </div>
+              <div class="card c-orange">
+                <span class="card-icon">📦</span>
+                <div class="card-name">Analytics DW</div>
+                <div class="card-tech">BigQuery · dbt · Metabase</div>
+                <ul class="card-features">
+                  <li>Event stream ingestion</li>
+                  <li>Operator usage reports</li>
+                  <li>Carbon offset aggregations</li>
+                  <li>Business intelligence</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- connector -->
+        <div class="connector">
+          <div class="connector-line"></div>
+          <div class="connector-center">
+            <div
+              class="flow-badge"
+              style="
+                color: var(--red);
+                border-color: rgba(255, 61, 87, 0.25);
+                background: rgba(255, 61, 87, 0.06);
+              "
+            >
+              REST · Webhooks · SDK · OpenAPI
+            </div>
+          </div>
+          <div class="connector-line"></div>
+        </div>
+
+        <!-- 6 · EXTERNAL APIs -->
+        <div class="layer layer-external">
+          <div class="layer-body">
+            <div class="layer-title" style="background: rgba(255, 61, 87, 0.07); color: var(--red)">
+              ⑥ External Integrations
+            </div>
+            <div class="cards">
+              <div class="card c-red">
+                <span class="card-icon">🗺️</span>
+                <div class="card-name">Mapping</div>
+                <div class="card-tech">Mapbox · Google Maps · OSRM</div>
+                <ul class="card-features">
+                  <li>Tile rendering & geocoding</li>
+                  <li>Turn-by-turn directions</li>
+                  <li>Reverse geo & address lookup</li>
+                </ul>
+              </div>
+              <div class="card c-red">
+                <span class="card-icon">💳</span>
+                <div class="card-name">Payments</div>
+                <div class="card-tech">Stripe · Apple Pay · Google Pay</div>
+                <ul class="card-features">
+                  <li>Pro subscription billing</li>
+                  <li>Subscription management</li>
+                  <li>Sponsored listing payments</li>
+                </ul>
+              </div>
+              <div class="card c-red">
+                <span class="card-icon">🌿</span>
+                <div class="card-name">Carbon API</div>
+                <div class="card-tech">Electricity Maps · EPA eGRID</div>
+                <ul class="card-features">
+                  <li>Grid carbon intensity by ZIP</li>
+                  <li>CO₂ saved estimation</li>
+                  <li>Shareable impact cards</li>
+                </ul>
+              </div>
+              <div class="card c-red">
+                <span class="card-icon">🛡️</span>
+                <div class="card-name">Trust & Safety</div>
+                <div class="card-tech">Hive Moderation · reCAPTCHA</div>
+                <ul class="card-features">
+                  <li>Photo content moderation</li>
+                  <li>Spam report filtering</li>
+                  <li>Bot detection on check-ins</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- /arch -->
+
+      <!-- ══════════════════════════════════════════════
+       KEY DATA FLOWS
+  ══════════════════════════════════════════════ -->
+      <div class="flow-section">
+        <div class="section-header">
+          <div class="section-title">Key Data Flows</div>
+          <div class="section-sub">Critical request paths through the system</div>
+        </div>
+        <div class="flow-grid">
+          <div class="flow-card" style="border-color: rgba(0, 229, 255, 0.15)">
+            <div class="flow-card-title" style="color: var(--cyan)">
+              <span style="font-size: 16px">📍</span> Station Discovery Request
+            </div>
+            <div class="flow-steps">
+              <div class="flow-step">
+                <div
+                  class="flow-num"
+                  style="background: rgba(0, 229, 255, 0.1); color: var(--cyan)"
+                >
+                  1
+                </div>
+                <div class="flow-text">
+                  User opens map — client sends <strong>geo-radius query</strong> with lat/lng +
+                  optional connector filter from vehicle profile
+                </div>
+              </div>
+              <div class="flow-step">
+                <div
+                  class="flow-num"
+                  style="background: rgba(0, 229, 255, 0.1); color: var(--cyan)"
+                >
+                  2
+                </div>
+                <div class="flow-text">
+                  API Gateway checks <strong>edge cache</strong> for identical geo-cell query (60s
+                  TTL)
+                </div>
+              </div>
+              <div class="flow-step">
+                <div
+                  class="flow-num"
+                  style="background: rgba(0, 229, 255, 0.1); color: var(--cyan)"
+                >
+                  3
+                </div>
+                <div class="flow-text">
+                  Cache miss → <strong>Station Service</strong> runs geo-radius query, filters by
+                  connector type and station type (EV/Moto)
+                </div>
+              </div>
+              <div class="flow-step">
+                <div
+                  class="flow-num"
+                  style="background: rgba(0, 229, 255, 0.1); color: var(--cyan)"
+                >
+                  4
+                </div>
+                <div class="flow-text">
+                  <strong>Status Aggregator</strong> pulls latest community-reported status per
+                  station from Redis
+                </div>
+              </div>
+              <div class="flow-step">
+                <div
+                  class="flow-num"
+                  style="background: rgba(0, 229, 255, 0.1); color: var(--cyan)"
+                >
+                  5
+                </div>
+                <div class="flow-text">
+                  Community reliability scores & <strong>last-verified timestamps</strong> appended
+                  per station
+                </div>
+              </div>
+              <div class="flow-step">
+                <div
+                  class="flow-num"
+                  style="background: rgba(0, 229, 255, 0.1); color: var(--cyan)"
+                >
+                  6
+                </div>
+                <div class="flow-text">
+                  Response cached at edge, client opens <strong>Convex subscription</strong> for
+                  community status deltas
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="flow-card" style="border-color: rgba(179, 136, 255, 0.15)">
+            <div class="flow-card-title" style="color: var(--purple)">
+              <span style="font-size: 16px">👥</span> Community Status Update
+            </div>
+            <div class="flow-steps">
+              <div class="flow-step">
+                <div
+                  class="flow-num"
+                  style="background: rgba(179, 136, 255, 0.1); color: var(--purple)"
+                >
+                  1
+                </div>
+                <div class="flow-text">
+                  User taps <strong>"Mark as Available / Busy / Broken"</strong> on a station —
+                  status update submitted
+                </div>
+              </div>
+              <div class="flow-step">
+                <div
+                  class="flow-num"
+                  style="background: rgba(179, 136, 255, 0.1); color: var(--purple)"
+                >
+                  2
+                </div>
+                <div class="flow-text">
+                  <strong>reCAPTCHA</strong> & user reputation score checked — low-trust users are
+                  rate-limited
+                </div>
+              </div>
+              <div class="flow-step">
+                <div
+                  class="flow-num"
+                  style="background: rgba(179, 136, 255, 0.1); color: var(--purple)"
+                >
+                  3
+                </div>
+                <div class="flow-text">
+                  <strong>Signal Processor</strong> weighs new signal against recent reports;
+                  resolves conflicts by recency & trust
+                </div>
+              </div>
+              <div class="flow-step">
+                <div
+                  class="flow-num"
+                  style="background: rgba(179, 136, 255, 0.1); color: var(--purple)"
+                >
+                  4
+                </div>
+                <div class="flow-text">
+                  <strong>Convex mutation</strong> writes updated status to DB, triggers reactive
+                  query invalidation
+                </div>
+              </div>
+              <div class="flow-step">
+                <div
+                  class="flow-num"
+                  style="background: rgba(179, 136, 255, 0.1); color: var(--purple)"
+                >
+                  5
+                </div>
+                <div class="flow-text">
+                  All subscribed clients in geo-cell receive <strong>status delta push</strong> via
+                  WebSocket
+                </div>
+              </div>
+              <div class="flow-step">
+                <div
+                  class="flow-num"
+                  style="background: rgba(179, 136, 255, 0.1); color: var(--purple)"
+                >
+                  6
+                </div>
+                <div class="flow-text">
+                  Contributor's <strong>reputation +XP</strong> awarded; InfluxDB logs event for
+                  reliability scoring
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="flow-card" style="border-color: rgba(0, 230, 118, 0.15)">
+            <div class="flow-card-title" style="color: var(--green)">
+              <span style="font-size: 16px">📸</span> Community Check-In & Report
+            </div>
+            <div class="flow-steps">
+              <div class="flow-step">
+                <div
+                  class="flow-num"
+                  style="background: rgba(0, 230, 118, 0.1); color: var(--green)"
+                >
+                  1
+                </div>
+                <div class="flow-text">
+                  User taps <strong>"I'm charging here"</strong> — client submits check-in with
+                  optional photo
+                </div>
+              </div>
+              <div class="flow-step">
+                <div
+                  class="flow-num"
+                  style="background: rgba(0, 230, 118, 0.1); color: var(--green)"
+                >
+                  2
+                </div>
+                <div class="flow-text">
+                  <strong>reCAPTCHA</strong> & bot-score checked; user reputation score gates
+                  submission rate
+                </div>
+              </div>
+              <div class="flow-step">
+                <div
+                  class="flow-num"
+                  style="background: rgba(0, 230, 118, 0.1); color: var(--green)"
+                >
+                  3
+                </div>
+                <div class="flow-text">
+                  Photo uploaded to <strong>R2</strong>, queued for Hive Moderation async (returns
+                  in &lt;2s)
+                </div>
+              </div>
+              <div class="flow-step">
+                <div
+                  class="flow-num"
+                  style="background: rgba(0, 230, 118, 0.1); color: var(--green)"
+                >
+                  4
+                </div>
+                <div class="flow-text">
+                  <strong>Community Service</strong> updates last-verified timestamp and check-in
+                  count
+                </div>
+              </div>
+              <div class="flow-step">
+                <div
+                  class="flow-num"
+                  style="background: rgba(0, 230, 118, 0.1); color: var(--green)"
+                >
+                  5
+                </div>
+                <div class="flow-text">
+                  Reliability score <strong>recalculated</strong> — weighted blend of check-in
+                  frequency, recency, and reporter reputation
+                </div>
+              </div>
+              <div class="flow-step">
+                <div
+                  class="flow-num"
+                  style="background: rgba(0, 230, 118, 0.1); color: var(--green)"
+                >
+                  6
+                </div>
+                <div class="flow-text">
+                  Contributor's <strong>reputation +XP</strong> awarded; operator notified if report
+                  flags issue
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="flow-card" style="border-color: rgba(255, 159, 28, 0.15)">
+            <div class="flow-card-title" style="color: var(--orange)">
+              <span style="font-size: 16px">🗺️</span> Route Planning with Charge Stops
+            </div>
+            <div class="flow-steps">
+              <div class="flow-step">
+                <div
+                  class="flow-num"
+                  style="background: rgba(255, 159, 28, 0.1); color: var(--orange)"
+                >
+                  1
+                </div>
+                <div class="flow-text">
+                  User enters destination + <strong>manually inputs current range</strong> — Route
+                  Service begins planning
+                </div>
+              </div>
+              <div class="flow-step">
+                <div
+                  class="flow-num"
+                  style="background: rgba(255, 159, 28, 0.1); color: var(--orange)"
+                >
+                  2
+                </div>
+                <div class="flow-text">
+                  <strong>Route Service</strong> calls Mapbox/OSRM for base route geometry,
+                  identifies range-gap segments
+                </div>
+              </div>
+              <div class="flow-step">
+                <div
+                  class="flow-num"
+                  style="background: rgba(255, 159, 28, 0.1); color: var(--orange)"
+                >
+                  3
+                </div>
+                <div class="flow-text">
+                  Station Service queries <strong>compatible stations</strong> within 5km of each
+                  gap point, filtered by user's connector selection
+                </div>
+              </div>
+              <div class="flow-step">
+                <div
+                  class="flow-num"
+                  style="background: rgba(255, 159, 28, 0.1); color: var(--orange)"
+                >
+                  4
+                </div>
+                <div class="flow-text">
+                  Stations ranked by
+                  <strong
+                    >community reliability score + last-verified recency + detour distance</strong
+                  >
+                </div>
+              </div>
+              <div class="flow-step">
+                <div
+                  class="flow-num"
+                  style="background: rgba(255, 159, 28, 0.1); color: var(--orange)"
+                >
+                  5
+                </div>
+                <div class="flow-text">
+                  Optimal stops selected, <strong>queue wait estimates</strong> added from Queue
+                  Engine
+                </div>
+              </div>
+              <div class="flow-step">
+                <div
+                  class="flow-num"
+                  style="background: rgba(255, 159, 28, 0.1); color: var(--orange)"
+                >
+                  6
+                </div>
+                <div class="flow-text">
+                  Compiled route handed to <strong>Mapbox Directions</strong> for turn-by-turn
+                  rendering
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════════════
+       DATABASE SCHEMA
+  ══════════════════════════════════════════════ -->
+      <div class="schema-section">
+        <div class="section-header">
+          <div class="section-title">Core Data Schema</div>
+          <div class="section-sub">
+            Primary tables — <span style="color: var(--yellow)">PK</span> primary key ·
+            <span style="color: var(--purple)">FK</span> foreign key
+          </div>
+        </div>
+        <div class="schema-grid">
+          <div class="schema-table" style="border-color: rgba(0, 229, 255, 0.15)">
+            <div
+              class="schema-thead"
+              style="background: rgba(0, 229, 255, 0.06); color: var(--cyan)"
+            >
+              📍 stations
+            </div>
+            <div class="schema-rows">
+              <div class="schema-row">
+                <span class="schema-col pk">id</span><span class="schema-type">uuid PK</span>
+              </div>
+              <div class="schema-row">
+                <span class="schema-col">name</span><span class="schema-type">text</span>
+              </div>
+              <div class="schema-row">
+                <span class="schema-col">type</span><span class="schema-type">enum ev|moto</span>
+              </div>
+              <div class="schema-row">
+                <span class="schema-col">location</span><span class="schema-type">geometry</span>
+              </div>
+              <div class="schema-row">
+                <span class="schema-col">address</span><span class="schema-type">jsonb</span>
+              </div>
+              <div class="schema-row">
+                <span class="schema-col">connectors</span><span class="schema-type">jsonb[]</span>
+              </div>
+              <div class="schema-row">
+                <span class="schema-col">max_power_kw</span><span class="schema-type">decimal</span>
+              </div>
+              <div class="schema-row">
+                <span class="schema-col">total_slots</span><span class="schema-type">int</span>
+              </div>
+              <div class="schema-row">
+                <span class="schema-col">battery_swap</span><span class="schema-type">boolean</span>
+              </div>
+              <div class="schema-row">
+                <span class="schema-col">reliability_score</span
+                ><span class="schema-type">decimal</span>
+              </div>
+              <div class="schema-row">
+                <span class="schema-col">last_verified_at</span
+                ><span class="schema-type">timestamptz</span>
+              </div>
+              <div class="schema-row">
+                <span class="schema-col">access_type</span><span class="schema-type">enum</span>
+              </div>
+              <div class="schema-row">
+                <span class="schema-col">pricing_notes</span><span class="schema-type">text</span>
+              </div>
+              <div class="schema-row">
+                <span class="schema-col fk">operator_id</span
+                ><span class="schema-type">uuid FK</span>
+              </div>
+              <div class="schema-row">
+                <span class="schema-col">is_sponsored</span><span class="schema-type">boolean</span>
+              </div>
+              <div class="schema-row">
+                <span class="schema-col">created_at</span
+                ><span class="schema-type">timestamptz</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="schema-table" style="border-color: rgba(0, 230, 118, 0.15)">
+            <div
+              class="schema-thead"
+              style="background: rgba(0, 230, 118, 0.06); color: var(--green)"
+            >
+              ⚡ sessions
+            </div>
+            <div class="schema-rows">
+              <div class="schema-row">
+                <span class="schema-col pk">id</span><span class="schema-type">uuid PK</span>
+              </div>
+              <div class="schema-row">
+                <span class="schema-col fk">user_id</span><span class="schema-type">uuid FK</span>
+              </div>
+              <div class="schema-row">
+                <span class="schema-col fk">station_id</span
+                ><span class="schema-col fk" style="font-size: 9px">uuid FK</span>
+              </div>
+              <div class="schema-row">
+                <span class="schema-col">status</span
+                ><span class="schema-type">enum active|ended</span>
+              </div>
+              <div class="schema-row">
+                <span class="schema-col">started_at</span
+                ><span class="schema-type">timestamptz</span>
+              </div>
+              <div class="schema-row">
+                <span class="schema-col">ended_at</span
+                ><span class="schema-type">timestamptz nullable</span>
+              </div>
+              <div class="schema-row">
+                <span class="schema-col">duration_min</span><span class="schema-type">int</span>
+              </div>
+              <div class="schema-row">
+                <span class="schema-col">co2_saved_g</span><span class="schema-type">int</span>
+              </div>
+              <div class="schema-row">
+                <span class="schema-col">user_notes</span
+                ><span class="schema-type">text nullable</span>
+              </div>
+              <div class="schema-row">
+                <span class="schema-col fk">vehicle_id</span
+                ><span class="schema-type">uuid FK nullable</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="schema-table" style="border-color: rgba(179, 136, 255, 0.15)">
+            <div
+              class="schema-thead"
+              style="background: rgba(179, 136, 255, 0.06); color: var(--purple)"
+            >
+              👥 users
+            </div>
+            <div class="schema-rows">
+              <div class="schema-row">
+                <span class="schema-col pk">id</span><span class="schema-type">uuid PK</span>
+              </div>
+              <div class="schema-row">
+                <span class="schema-col">display_name</span><span class="schema-type">text</span>
+              </div>
+              <div class="schema-row">
+                <span class="schema-col">email</span><span class="schema-type">text unique</span>
+              </div>
+              <div class="schema-row">
+                <span class="schema-col">auth_provider</span><span class="schema-type">text</span>
+              </div>
+              <div class="schema-row">
+                <span class="schema-col">reputation_score</span><span class="schema-type">int</span>
+              </div>
+              <div class="schema-row">
+                <span class="schema-col">total_checkins</span><span class="schema-type">int</span>
+              </div>
+              <div class="schema-row">
+                <span class="schema-col">total_reports</span><span class="schema-type">int</span>
+              </div>
+              <div class="schema-row">
+                <span class="schema-col">plan</span><span class="schema-type">enum free|pro</span>
+              </div>
+              <div class="schema-row">
+                <span class="schema-col">push_token</span><span class="schema-type">text</span>
+              </div>
+              <div class="schema-row">
+                <span class="schema-col">preferences</span><span class="schema-type">jsonb</span>
+              </div>
+              <div class="schema-row">
+                <span class="schema-col">carbon_total_g</span><span class="schema-type">int</span>
+              </div>
+              <div class="schema-row">
+                <span class="schema-col">created_at</span
+                ><span class="schema-type">timestamptz</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="schema-table" style="border-color: rgba(255, 159, 28, 0.15)">
+            <div
+              class="schema-thead"
+              style="background: rgba(255, 159, 28, 0.06); color: var(--orange)"
+            >
+              🚗 vehicles
+            </div>
+            <div class="schema-rows">
+              <div class="schema-row">
+                <span class="schema-col pk">id</span><span class="schema-type">uuid PK</span>
+              </div>
+              <div class="schema-row">
+                <span class="schema-col fk">user_id</span><span class="schema-type">uuid FK</span>
+              </div>
+              <div class="schema-row">
+                <span class="schema-col">make</span><span class="schema-type">text</span>
+              </div>
+              <div class="schema-row">
+                <span class="schema-col">model</span><span class="schema-type">text</span>
+              </div>
+              <div class="schema-row">
+                <span class="schema-col">year</span><span class="schema-type">int</span>
+              </div>
+              <div class="schema-row">
+                <span class="schema-col">vehicle_type</span
+                ><span class="schema-type">enum car|moto</span>
+              </div>
+              <div class="schema-row">
+                <span class="schema-col">battery_kwh</span><span class="schema-type">decimal</span>
+              </div>
+              <div class="schema-row">
+                <span class="schema-col">range_km</span><span class="schema-type">int</span>
+              </div>
+              <div class="schema-row">
+                <span class="schema-col">connectors</span><span class="schema-type">text[]</span>
+              </div>
+              <div class="schema-row">
+                <span class="schema-col">max_charge_kw</span
+                ><span class="schema-type">decimal</span>
+              </div>
+              <div class="schema-row">
+                <span class="schema-col">is_default</span><span class="schema-type">boolean</span>
+              </div>
+              <div class="schema-row">
+                <span class="schema-col">vin</span><span class="schema-type">text nullable</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- second row -->
+        <div class="schema-grid" style="margin-top: 16px">
+          <div class="schema-table" style="border-color: rgba(255, 107, 157, 0.15)">
+            <div
+              class="schema-thead"
+              style="background: rgba(255, 107, 157, 0.06); color: var(--pink)"
+            >
+              📋 reports
+            </div>
+            <div class="schema-rows">
+              <div class="schema-row">
+                <span class="schema-col pk">id</span><span class="schema-type">uuid PK</span>
+              </div>
+              <div class="schema-row">
+                <span class="schema-col fk">station_id</span
+                ><span class="schema-type">uuid FK</span>
+              </div>
+              <div class="schema-row">
+                <span class="schema-col fk">user_id</span><span class="schema-type">uuid FK</span>
+              </div>
+              <div class="schema-row">
+                <span class="schema-col">issue_type</span><span class="schema-type">enum</span>
+              </div>
+              <div class="schema-row">
+                <span class="schema-col">detail</span><span class="schema-type">text</span>
+              </div>
+              <div class="schema-row">
+                <span class="schema-col">status</span
+                ><span class="schema-type">enum open|resolved</span>
+              </div>
+              <div class="schema-row">
+                <span class="schema-col">photo_url</span
+                ><span class="schema-type">text nullable</span>
+              </div>
+              <div class="schema-row">
+                <span class="schema-col">resolved_at</span
+                ><span class="schema-type">timestamptz</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="schema-table" style="border-color: rgba(0, 191, 165, 0.15)">
+            <div
+              class="schema-thead"
+              style="background: rgba(0, 191, 165, 0.06); color: var(--teal)"
+            >
+              🔌 slot_status
+            </div>
+            <div class="schema-rows">
+              <div class="schema-row">
+                <span class="schema-col pk">id</span><span class="schema-type">uuid PK</span>
+              </div>
+              <div class="schema-row">
+                <span class="schema-col fk">station_id</span
+                ><span class="schema-type">uuid FK</span>
+              </div>
+              <div class="schema-row">
+                <span class="schema-col">reported_status</span
+                ><span class="schema-type">enum available|busy|broken</span>
+              </div>
+              <div class="schema-row">
+                <span class="schema-col">confidence</span
+                ><span class="schema-type">decimal 0–1</span>
+              </div>
+              <div class="schema-row">
+                <span class="schema-col">report_count</span><span class="schema-type">int</span>
+              </div>
+              <div class="schema-row">
+                <span class="schema-col">source</span
+                ><span class="schema-type">enum checkin|report|suggest</span>
+              </div>
+              <div class="schema-row">
+                <span class="schema-col">updated_at</span
+                ><span class="schema-type">timestamptz</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="schema-table" style="border-color: rgba(255, 214, 0, 0.15)">
+            <div
+              class="schema-thead"
+              style="background: rgba(255, 214, 0, 0.06); color: var(--yellow)"
+            >
+              ⭐ checkins
+            </div>
+            <div class="schema-rows">
+              <div class="schema-row">
+                <span class="schema-col pk">id</span><span class="schema-type">uuid PK</span>
+              </div>
+              <div class="schema-row">
+                <span class="schema-col fk">station_id</span
+                ><span class="schema-type">uuid FK</span>
+              </div>
+              <div class="schema-row">
+                <span class="schema-col fk">user_id</span><span class="schema-type">uuid FK</span>
+              </div>
+              <div class="schema-row">
+                <span class="schema-col">checked_in_at</span
+                ><span class="schema-type">timestamptz</span>
+              </div>
+              <div class="schema-row">
+                <span class="schema-col">verified</span><span class="schema-type">boolean</span>
+              </div>
+              <div class="schema-row">
+                <span class="schema-col">xp_awarded</span><span class="schema-type">int</span>
+              </div>
+              <div class="schema-row">
+                <span class="schema-col">photo_url</span
+                ><span class="schema-type">text nullable</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="schema-table" style="border-color: rgba(255, 61, 87, 0.15)">
+            <div
+              class="schema-thead"
+              style="background: rgba(255, 61, 87, 0.06); color: var(--red)"
+            >
+              🏢 operators
+            </div>
+            <div class="schema-rows">
+              <div class="schema-row">
+                <span class="schema-col pk">id</span><span class="schema-type">uuid PK</span>
+              </div>
+              <div class="schema-row">
+                <span class="schema-col">name</span><span class="schema-type">text</span>
+              </div>
+              <div class="schema-row">
+                <span class="schema-col">logo_url</span><span class="schema-type">text</span>
+              </div>
+              <div class="schema-row">
+                <span class="schema-col">api_key</span><span class="schema-type">text hashed</span>
+              </div>
+              <div class="schema-row">
+                <span class="schema-col">ocpp_endpoint</span><span class="schema-type">text</span>
+              </div>
+              <div class="schema-row">
+                <span class="schema-col">verified</span><span class="schema-type">boolean</span>
+              </div>
+              <div class="schema-row">
+                <span class="schema-col">plan</span
+                ><span class="schema-type">enum free|pro|enterprise</span>
+              </div>
+              <div class="schema-row">
+                <span class="schema-col">revenue_share</span
+                ><span class="schema-type">decimal</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════════════
+       TECH STACK SUMMARY
+  ══════════════════════════════════════════════ -->
+      <div class="stack-section">
+        <div class="section-header">
+          <div class="section-title">Full Tech Stack</div>
+          <div class="section-sub">Every technology in the system, at a glance</div>
+        </div>
+        <div class="stack-grid">
+          <div class="stack-item" style="border-color: rgba(0, 229, 255, 0.15)">
+            <span class="stack-emoji">📱</span>
+            <div class="stack-name" style="color: var(--cyan)">React Native</div>
+            <div class="stack-role">Mobile Client</div>
+          </div>
+          <div class="stack-item" style="border-color: rgba(0, 229, 255, 0.15)">
+            <span class="stack-emoji">🔀</span>
+            <div class="stack-name" style="color: var(--cyan)">TanStack</div>
+            <div class="stack-role">Router + Query</div>
+          </div>
+          <div class="stack-item" style="border-color: rgba(0, 230, 118, 0.15)">
+            <span class="stack-emoji">🟣</span>
+            <div class="stack-name" style="color: var(--green)">Convex</div>
+            <div class="stack-role">Backend + Realtime</div>
+          </div>
+          <div class="stack-item" style="border-color: rgba(255, 214, 0, 0.15)">
+            <span class="stack-emoji">🔐</span>
+            <div class="stack-name" style="color: var(--yellow)">Clerk</div>
+            <div class="stack-role">Auth</div>
+          </div>
+          <div class="stack-item" style="border-color: rgba(255, 214, 0, 0.15)">
+            <span class="stack-emoji">🌐</span>
+            <div class="stack-name" style="color: var(--yellow)">Cloudflare</div>
+            <div class="stack-role">CDN + Workers + R2</div>
+          </div>
+          <div class="stack-item" style="border-color: rgba(0, 191, 165, 0.15)">
+            <span class="stack-emoji">🗺️</span>
+            <div class="stack-name" style="color: var(--teal)">Mapbox</div>
+            <div class="stack-role">Maps + Routing</div>
+          </div>
+          <div class="stack-item" style="border-color: rgba(255, 61, 87, 0.15)">
+            <span class="stack-emoji">⚡</span>
+            <div class="stack-name" style="color: var(--red)">Redis</div>
+            <div class="stack-role">Cache + Streams</div>
+          </div>
+          <div class="stack-item" style="border-color: rgba(179, 136, 255, 0.15)">
+            <span class="stack-emoji">👥</span>
+            <div class="stack-name" style="color: var(--purple)">Convex Jobs</div>
+            <div class="stack-role">Signal Processing</div>
+          </div>
+          <div class="stack-item" style="border-color: rgba(255, 159, 28, 0.15)">
+            <span class="stack-emoji">📈</span>
+            <div class="stack-name" style="color: var(--orange)">InfluxDB</div>
+            <div class="stack-role">Time-Series</div>
+          </div>
+          <div class="stack-item" style="border-color: rgba(0, 230, 118, 0.15)">
+            <span class="stack-emoji">🔍</span>
+            <div class="stack-name" style="color: var(--green)">Algolia</div>
+            <div class="stack-role">Search</div>
+          </div>
+          <div class="stack-item" style="border-color: rgba(255, 107, 157, 0.15)">
+            <span class="stack-emoji">💳</span>
+            <div class="stack-name" style="color: var(--pink)">Stripe</div>
+            <div class="stack-role">Payments</div>
+          </div>
+          <div class="stack-item" style="border-color: rgba(0, 229, 255, 0.15)">
+            <span class="stack-emoji">📊</span>
+            <div class="stack-name" style="color: var(--cyan)">PostHog</div>
+            <div class="stack-role">Analytics</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════════════
+       INFRA & SLAs
+  ══════════════════════════════════════════════ -->
+      <div class="infra-section">
+        <div class="section-header">
+          <div class="section-title">Infrastructure & SLAs</div>
+          <div class="section-sub">Performance targets and deployment configuration</div>
+        </div>
+        <div class="infra-grid">
+          <div class="infra-card" style="border-color: rgba(0, 229, 255, 0.15)">
+            <div class="infra-title" style="color: var(--cyan)">⚡ Performance Targets</div>
+            <div class="infra-items">
+              <div class="infra-item">
+                <span class="infra-label">Map load (cold)</span
+                ><span class="infra-val" style="color: var(--green)">&lt; 800ms</span>
+              </div>
+              <div class="infra-item">
+                <span class="infra-label">Station search (geo-indexed)</span
+                ><span class="infra-val" style="color: var(--green)">&lt; 120ms</span>
+              </div>
+              <div class="infra-item">
+                <span class="infra-label">Community status update propagation</span
+                ><span class="infra-val" style="color: var(--green)">&lt; 300ms</span>
+              </div>
+              <div class="infra-item">
+                <span class="infra-label">Push notification delivery</span
+                ><span class="infra-val" style="color: var(--green)">&lt; 3s p99</span>
+              </div>
+              <div class="infra-item">
+                <span class="infra-label">Photo moderation turnaround</span
+                ><span class="infra-val" style="color: var(--yellow)">&lt; 2s async</span>
+              </div>
+              <div class="infra-item">
+                <span class="infra-label">Route plan computation</span
+                ><span class="infra-val" style="color: var(--yellow)">&lt; 1.5s</span>
+              </div>
+              <div class="infra-item">
+                <span class="infra-label">API availability SLA</span
+                ><span class="infra-val" style="color: var(--green)">99.9% uptime</span>
+              </div>
+            </div>
+          </div>
+          <div class="infra-card" style="border-color: rgba(0, 230, 118, 0.15)">
+            <div class="infra-title" style="color: var(--green)">🌍 Deployment</div>
+            <div class="infra-items">
+              <div class="infra-item">
+                <span class="infra-label">Primary region</span
+                ><span class="infra-val" style="color: var(--text)">US-West (Oregon)</span>
+              </div>
+              <div class="infra-item">
+                <span class="infra-label">Failover region</span
+                ><span class="infra-val" style="color: var(--text)">US-East (Virginia)</span>
+              </div>
+              <div class="infra-item">
+                <span class="infra-label">Edge nodes (Cloudflare)</span
+                ><span class="infra-val" style="color: var(--cyan)">300+ PoPs</span>
+              </div>
+              <div class="infra-item">
+                <span class="infra-label">DB replicas</span
+                ><span class="infra-val" style="color: var(--cyan)">3x async</span>
+              </div>
+              <div class="infra-item">
+                <span class="infra-label">Backup frequency</span
+                ><span class="infra-val" style="color: var(--text)">Every 6 hrs</span>
+              </div>
+              <div class="infra-item">
+                <span class="infra-label">Community signal processing</span
+                ><span class="infra-val" style="color: var(--cyan)">Convex · serverless</span>
+              </div>
+              <div class="infra-item">
+                <span class="infra-label">CI/CD pipeline</span
+                ><span class="infra-val" style="color: var(--text)">GitHub Actions</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- FOOTER -->
+      <div class="footer">
+        <div class="footer-left">
+          CHARGEFIND ARCHITECTURE v2.0 · CONFIDENTIAL<br />
+          ⚡ EV + MOTOR BATTERY NETWORK DISCOVERY PLATFORM
+        </div>
+        <div class="footer-right">
+          <div class="footer-stat">
+            <div class="footer-stat-val">6</div>
+            <div class="footer-stat-label">Architecture Layers</div>
+          </div>
+          <div class="footer-stat">
+            <div class="footer-stat-val">25</div>
+            <div class="footer-stat-label">Services & Modules</div>
+          </div>
+          <div class="footer-stat">
+            <div class="footer-stat-val">4</div>
+            <div class="footer-stat-label">External Integrations</div>
+          </div>
+          <div class="footer-stat">
+            <div class="footer-stat-val">8</div>
+            <div class="footer-stat-label">DB Tables (core)</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

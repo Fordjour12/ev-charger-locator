@@ -1,0 +1,1646 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ChargeFIND — EV Station Finder</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      :root {
+        --bg: #070a12;
+        --bg2: #0b0f1c;
+        --bg3: #10152a;
+        --border: rgba(255, 255, 255, 0.07);
+        --border2: rgba(255, 255, 255, 0.12);
+        --cyan: #00e5ff;
+        --cyan-dim: rgba(0, 229, 255, 0.15);
+        --green: #00e676;
+        --yellow: #ffd600;
+        --red: #ff3d57;
+        --orange: #ff6b35;
+        --text: #dde4ff;
+        --text-dim: rgba(221, 228, 255, 0.45);
+        --text-faint: rgba(221, 228, 255, 0.2);
+      }
+
+      html,
+      body {
+        height: 100%;
+        background: var(--bg);
+        color: var(--text);
+        font-family: "Syne", sans-serif;
+        overflow: hidden;
+      }
+
+      ::-webkit-scrollbar {
+        width: 4px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 99px;
+      }
+
+      /* ── Layout ── */
+      .app {
+        display: grid;
+        grid-template-columns: 260px 1fr 380px;
+        grid-template-rows: 100vh;
+        height: 100vh;
+      }
+
+      /* ── Sidebar ── */
+      .sidebar {
+        background: var(--bg2);
+        border-right: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        position: relative;
+      }
+      .sidebar::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        width: 1px;
+        background: linear-gradient(180deg, transparent, var(--cyan) 40%, transparent);
+        opacity: 0.15;
+      }
+      .logo {
+        padding: 28px 24px 20px;
+        border-bottom: 1px solid var(--border);
+      }
+      .logo-mark {
+        font-family: "Barlow Condensed", sans-serif;
+        font-size: 28px;
+        font-weight: 900;
+        letter-spacing: 0.06em;
+        line-height: 1;
+      }
+      .logo-mark span {
+        color: var(--cyan);
+      }
+      .logo-mark em {
+        color: var(--text-faint);
+        font-style: normal;
+      }
+      .logo-sub {
+        font-family: "DM Mono", monospace;
+        font-size: 9px;
+        color: var(--text-faint);
+        letter-spacing: 0.18em;
+        margin-top: 4px;
+        text-transform: uppercase;
+      }
+      .nav {
+        padding: 16px 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+      .nav-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 14px;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 0.18s;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-dim);
+        border: 1px solid transparent;
+        letter-spacing: 0.02em;
+      }
+      .nav-item:hover {
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--text);
+      }
+      .nav-item.active {
+        background: var(--cyan-dim);
+        color: var(--cyan);
+        border-color: rgba(0, 229, 255, 0.2);
+      }
+      .nav-icon {
+        font-size: 16px;
+        width: 20px;
+        text-align: center;
+      }
+      .nav-badge {
+        margin-left: auto;
+        background: var(--cyan);
+        color: var(--bg);
+        font-size: 10px;
+        font-weight: 700;
+        padding: 1px 6px;
+        border-radius: 99px;
+      }
+      .sidebar-stats {
+        margin: auto 0 0;
+        padding: 20px;
+        border-top: 1px solid var(--border);
+      }
+      .stat-label {
+        font-size: 9px;
+        color: var(--text-faint);
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        margin-bottom: 12px;
+      }
+      .stat-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      .stat-item {
+      }
+      .stat-val {
+        font-family: "Barlow Condensed", sans-serif;
+        font-size: 22px;
+        font-weight: 800;
+        color: var(--cyan);
+      }
+      .stat-name {
+        font-size: 10px;
+        color: var(--text-faint);
+        margin-top: 1px;
+      }
+      .location-bar {
+        padding: 14px 20px;
+        border-top: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .location-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--cyan);
+        box-shadow: 0 0 12px var(--cyan);
+        animation: locpulse 2.5s infinite;
+        flex-shrink: 0;
+      }
+      @keyframes locpulse {
+        0%,
+        100% {
+          box-shadow: 0 0 6px var(--cyan);
+        }
+        50% {
+          box-shadow:
+            0 0 18px var(--cyan),
+            0 0 30px rgba(0, 229, 255, 0.3);
+        }
+      }
+      .location-text {
+        font-size: 11px;
+        color: var(--text-dim);
+        line-height: 1.3;
+      }
+      .location-text strong {
+        color: var(--text);
+        font-size: 12px;
+        display: block;
+      }
+
+      /* ── Map ── */
+      .map-area {
+        background: var(--bg);
+        position: relative;
+        overflow: hidden;
+      }
+      .map-toolbar {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        right: 20px;
+        display: flex;
+        gap: 10px;
+        z-index: 10;
+      }
+      .search-wrap {
+        flex: 1;
+        position: relative;
+      }
+      .search-input {
+        width: 100%;
+        background: rgba(11, 15, 28, 0.92);
+        backdrop-filter: blur(20px);
+        border: 1px solid var(--border2);
+        border-radius: 12px;
+        padding: 12px 16px 12px 40px;
+        color: var(--text);
+        font-size: 13px;
+        font-family: "Syne", sans-serif;
+        outline: none;
+        transition: border-color 0.2s;
+        letter-spacing: 0.01em;
+      }
+      .search-input:focus {
+        border-color: rgba(0, 229, 255, 0.35);
+        box-shadow: 0 0 0 3px rgba(0, 229, 255, 0.06);
+      }
+      .search-icon {
+        position: absolute;
+        left: 13px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 16px;
+        color: var(--text-faint);
+        pointer-events: none;
+      }
+      .filter-pills {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+      }
+      .pill {
+        padding: 8px 14px;
+        border-radius: 10px;
+        font-size: 11px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.15s;
+        background: rgba(11, 15, 28, 0.9);
+        backdrop-filter: blur(16px);
+        border: 1px solid var(--border2);
+        color: var(--text-dim);
+        letter-spacing: 0.06em;
+        white-space: nowrap;
+      }
+      .pill:hover {
+        border-color: rgba(255, 255, 255, 0.25);
+        color: var(--text);
+      }
+      .pill.active-ccs {
+        background: rgba(0, 229, 255, 0.12);
+        border-color: rgba(0, 229, 255, 0.4);
+        color: var(--cyan);
+      }
+      .pill.active-chademo {
+        background: rgba(124, 77, 255, 0.12);
+        border-color: rgba(124, 77, 255, 0.4);
+        color: #b39ddb;
+      }
+      .pill.active-tesla {
+        background: rgba(229, 57, 53, 0.12);
+        border-color: rgba(229, 57, 53, 0.4);
+        color: #ef9a9a;
+      }
+      .pill.active-j1772 {
+        background: rgba(0, 191, 165, 0.12);
+        border-color: rgba(0, 191, 165, 0.4);
+        color: #80cbc4;
+      }
+      .view-toggle {
+        display: flex;
+        background: rgba(11, 15, 28, 0.92);
+        backdrop-filter: blur(20px);
+        border: 1px solid var(--border2);
+        border-radius: 10px;
+        overflow: hidden;
+      }
+      .view-btn {
+        padding: 10px 14px;
+        cursor: pointer;
+        font-size: 11px;
+        font-weight: 700;
+        background: none;
+        border: none;
+        color: var(--text-dim);
+        transition: all 0.15s;
+        letter-spacing: 0.06em;
+      }
+      .view-btn.active {
+        background: var(--cyan-dim);
+        color: var(--cyan);
+      }
+
+      /* SVG Map */
+      #map-svg {
+        width: 100%;
+        height: 100%;
+        display: block;
+        cursor: grab;
+      }
+      #map-svg:active {
+        cursor: grabbing;
+      }
+
+      .map-overlay-text {
+        position: absolute;
+        bottom: 20px;
+        left: 20px;
+        font-family: "DM Mono", monospace;
+        font-size: 10px;
+        color: rgba(255, 255, 255, 0.18);
+        letter-spacing: 0.1em;
+        pointer-events: none;
+      }
+
+      /* List overlay */
+      .list-overlay {
+        position: absolute;
+        inset: 80px 0 0 0;
+        overflow-y: auto;
+        padding: 16px 20px 20px;
+        display: none;
+        flex-direction: column;
+        gap: 8px;
+        background: var(--bg);
+      }
+      .list-overlay.visible {
+        display: flex;
+      }
+
+      /* ── Detail Panel ── */
+      .detail-panel {
+        background: var(--bg2);
+        border-left: 1px solid var(--border);
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+      }
+      .panel-header {
+        padding: 28px 28px 20px;
+        border-bottom: 1px solid var(--border);
+        position: sticky;
+        top: 0;
+        background: var(--bg2);
+        z-index: 5;
+      }
+      .panel-title {
+        font-size: 11px;
+        color: var(--text-faint);
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        font-family: "DM Mono", monospace;
+        margin-bottom: 6px;
+      }
+      .panel-station-name {
+        font-family: "Barlow Condensed", sans-serif;
+        font-size: 26px;
+        font-weight: 800;
+        line-height: 1.1;
+        letter-spacing: 0.03em;
+      }
+      .panel-address {
+        font-size: 12px;
+        color: var(--text-dim);
+        margin-top: 5px;
+        letter-spacing: 0.01em;
+      }
+      .panel-body {
+        padding: 24px 28px;
+        flex: 1;
+      }
+
+      .section-label {
+        font-size: 9px;
+        color: var(--text-faint);
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        font-family: "DM Mono", monospace;
+        margin-bottom: 12px;
+      }
+      .section {
+        margin-bottom: 28px;
+      }
+
+      .info-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      .info-cell {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 12px 14px;
+      }
+      .info-cell-label {
+        font-size: 9px;
+        color: var(--text-faint);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        margin-bottom: 4px;
+      }
+      .info-cell-val {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text);
+      }
+
+      .power-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 8px;
+      }
+      .power-bar-wrap {
+        flex: 1;
+        height: 6px;
+        background: rgba(255, 255, 255, 0.06);
+        border-radius: 3px;
+        overflow: hidden;
+      }
+      .power-bar-fill {
+        height: 100%;
+        border-radius: 3px;
+        transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      .power-label {
+        font-family: "DM Mono", monospace;
+        font-size: 12px;
+        font-weight: 500;
+        min-width: 56px;
+        text-align: right;
+      }
+
+      .connector-row {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .connector-tag {
+        padding: 5px 12px;
+        border-radius: 6px;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        border: 1px solid;
+      }
+
+      .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        padding: 6px 12px;
+        border-radius: 8px;
+        font-size: 12px;
+        font-weight: 700;
+      }
+      .status-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+      }
+
+      .action-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+      .action-btn {
+        padding: 14px 0;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 700;
+        cursor: pointer;
+        border: 1px solid;
+        letter-spacing: 0.06em;
+        font-family: "Barlow Condensed", sans-serif;
+        text-transform: uppercase;
+        transition: all 0.18s;
+        background: none;
+      }
+      .action-btn-primary {
+        background: linear-gradient(135deg, rgba(0, 229, 255, 0.15), rgba(0, 229, 255, 0.05));
+        border-color: rgba(0, 229, 255, 0.3);
+        color: var(--cyan);
+      }
+      .action-btn-primary:hover {
+        background: rgba(0, 229, 255, 0.2);
+        border-color: rgba(0, 229, 255, 0.5);
+      }
+      .action-btn-secondary {
+        border-color: var(--border2);
+        color: var(--text-dim);
+      }
+      .action-btn-secondary:hover {
+        background: rgba(255, 255, 255, 0.05);
+        color: var(--text);
+      }
+      .action-btn-secondary.saved {
+        border-color: rgba(255, 214, 0, 0.3);
+        color: var(--yellow);
+        background: rgba(255, 214, 0, 0.08);
+      }
+      .action-btn-danger {
+        width: 100%;
+        border-color: rgba(255, 61, 87, 0.25);
+        color: var(--red);
+        background: rgba(255, 61, 87, 0.06);
+      }
+      .action-btn-danger:hover {
+        background: rgba(255, 61, 87, 0.12);
+        border-color: rgba(255, 61, 87, 0.4);
+      }
+
+      .analytics-bar {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 1px;
+        background: var(--border);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        overflow: hidden;
+      }
+      .analytics-cell {
+        background: var(--bg2);
+        padding: 14px;
+        text-align: center;
+      }
+      .analytics-val {
+        font-family: "Barlow Condensed", sans-serif;
+        font-size: 22px;
+        font-weight: 800;
+        color: var(--cyan);
+      }
+      .analytics-key {
+        font-size: 10px;
+        color: var(--text-faint);
+        margin-top: 2px;
+      }
+
+      .sponsored-banner {
+        background: linear-gradient(90deg, rgba(255, 214, 0, 0.08), transparent);
+        border-bottom: 1px solid rgba(255, 214, 0, 0.12);
+        padding: 8px 28px;
+        font-size: 10px;
+        color: var(--yellow);
+        font-weight: 700;
+        letter-spacing: 0.1em;
+      }
+
+      /* Empty state */
+      .empty-state {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 40px;
+        text-align: center;
+        color: var(--text-faint);
+      }
+      .empty-icon {
+        font-size: 56px;
+        margin-bottom: 16px;
+        opacity: 0.4;
+      }
+      .empty-title {
+        font-size: 16px;
+        font-weight: 700;
+        font-family: "Barlow Condensed", sans-serif;
+        letter-spacing: 0.04em;
+        margin-bottom: 6px;
+      }
+      .empty-sub {
+        font-size: 12px;
+        line-height: 1.6;
+      }
+
+      /* Contribute panel */
+      .contrib-card {
+        padding: 18px 20px;
+        border-radius: 14px;
+        border: 1px solid var(--border);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        transition: all 0.2s;
+        background: rgba(255, 255, 255, 0.02);
+        margin-bottom: 10px;
+      }
+      .contrib-card:hover {
+        background: rgba(255, 255, 255, 0.05);
+      }
+      .contrib-icon {
+        font-size: 24px;
+        width: 40px;
+        text-align: center;
+        flex-shrink: 0;
+      }
+      .contrib-title {
+        font-size: 14px;
+        font-weight: 700;
+        font-family: "Barlow Condensed", sans-serif;
+        letter-spacing: 0.03em;
+        margin-bottom: 3px;
+      }
+      .contrib-desc {
+        font-size: 12px;
+        color: var(--text-dim);
+        line-height: 1.4;
+      }
+      .contrib-arrow {
+        margin-left: auto;
+        color: var(--text-faint);
+        font-size: 18px;
+      }
+
+      /* Modal */
+      .modal-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(4, 7, 16, 0.82);
+        backdrop-filter: blur(18px);
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        animation: fadeIn 0.2s ease;
+      }
+      .modal {
+        background: #0e1424;
+        border: 1px solid var(--border2);
+        border-radius: 20px;
+        width: 100%;
+        max-width: 480px;
+        box-shadow: 0 32px 80px rgba(0, 0, 0, 0.6);
+        animation: modalIn 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+        overflow: hidden;
+      }
+      .modal-header {
+        padding: 24px 28px 20px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .modal-title {
+        font-family: "Barlow Condensed", sans-serif;
+        font-size: 18px;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+      .modal-close {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.08);
+        border: none;
+        color: var(--text-dim);
+        cursor: pointer;
+        font-size: 15px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background 0.15s;
+      }
+      .modal-close:hover {
+        background: rgba(255, 255, 255, 0.15);
+      }
+      .modal-body {
+        padding: 24px 28px 28px;
+      }
+      .form-group {
+        margin-bottom: 18px;
+      }
+      .form-label {
+        font-size: 10px;
+        color: var(--text-faint);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        margin-bottom: 7px;
+        display: block;
+      }
+      .form-input,
+      .form-textarea {
+        width: 100%;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--border2);
+        border-radius: 10px;
+        padding: 11px 14px;
+        color: var(--text);
+        font-size: 13px;
+        font-family: "Syne", sans-serif;
+        outline: none;
+        transition: border-color 0.2s;
+      }
+      .form-input:focus,
+      .form-textarea:focus {
+        border-color: rgba(0, 229, 255, 0.35);
+      }
+      .form-textarea {
+        resize: vertical;
+        min-height: 80px;
+      }
+      .radio-group {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .radio-option {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        cursor: pointer;
+        padding: 10px 14px;
+        border-radius: 9px;
+        border: 1px solid var(--border);
+        transition: all 0.15s;
+      }
+      .radio-option:hover {
+        border-color: var(--border2);
+        background: rgba(255, 255, 255, 0.03);
+      }
+      .radio-option input[type="radio"] {
+        accent-color: var(--orange);
+      }
+      .radio-option span {
+        font-size: 13px;
+        color: var(--text-dim);
+      }
+      .btn-submit {
+        width: 100%;
+        padding: 14px;
+        border-radius: 12px;
+        border: none;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        font-family: "Barlow Condensed", sans-serif;
+        transition: opacity 0.2s;
+        margin-top: 6px;
+      }
+      .btn-submit:hover {
+        opacity: 0.88;
+      }
+
+      /* Toast */
+      .toast {
+        position: fixed;
+        bottom: 32px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(14, 20, 36, 0.95);
+        border: 1px solid var(--border2);
+        backdrop-filter: blur(20px);
+        border-radius: 12px;
+        padding: 12px 22px;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text);
+        z-index: 2000;
+        animation: toastIn 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+        box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
+        white-space: nowrap;
+        pointer-events: none;
+      }
+
+      /* Station list items */
+      .station-row {
+        padding: 14px 18px;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid var(--border);
+        cursor: pointer;
+        transition: all 0.18s;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+      .station-row:hover {
+        background: rgba(255, 255, 255, 0.06);
+        border-color: var(--border2);
+      }
+      .station-row.selected {
+        border-color: rgba(0, 229, 255, 0.3);
+        background: rgba(0, 229, 255, 0.05);
+      }
+      .station-row-info {
+        flex: 1;
+        min-width: 0;
+      }
+      .station-row-name {
+        font-size: 13px;
+        font-weight: 700;
+        font-family: "Barlow Condensed", sans-serif;
+        letter-spacing: 0.03em;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin-bottom: 4px;
+      }
+      .station-row-meta {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 11px;
+        color: var(--text-dim);
+      }
+      .station-row-meta .sep {
+        color: var(--text-faint);
+      }
+      .station-row-power {
+        font-family: "DM Mono", monospace;
+        font-size: 12px;
+        color: var(--cyan);
+        font-weight: 500;
+      }
+      .station-row-badge {
+        flex-shrink: 0;
+      }
+
+      /* Bookmarks */
+      .bookmark-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      /* Map pin tooltip */
+      .map-tooltip {
+        position: absolute;
+        background: rgba(14, 20, 36, 0.95);
+        border: 1px solid var(--border2);
+        border-radius: 10px;
+        padding: 10px 14px;
+        pointer-events: none;
+        z-index: 20;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text);
+        white-space: nowrap;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+        display: none;
+        backdrop-filter: blur(16px);
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+      @keyframes modalIn {
+        from {
+          transform: scale(0.96) translateY(10px);
+          opacity: 0;
+        }
+        to {
+          transform: scale(1) translateY(0);
+          opacity: 1;
+        }
+      }
+      @keyframes toastIn {
+        from {
+          transform: translateX(-50%) translateY(16px);
+          opacity: 0;
+        }
+        to {
+          transform: translateX(-50%) translateY(0);
+          opacity: 1;
+        }
+      }
+      @keyframes pulsering {
+        0% {
+          r: 10;
+          opacity: 0.7;
+        }
+        100% {
+          r: 22;
+          opacity: 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <!-- ── SIDEBAR ── -->
+      <aside class="sidebar">
+        <div class="logo">
+          <div class="logo-mark"><span>⚡</span>CHARGE<em>FIND</em></div>
+          <div class="logo-sub">EV Network Discovery</div>
+        </div>
+
+        <nav class="nav">
+          <div class="nav-item active" onclick="setTab('discover')">
+            <span class="nav-icon">◉</span> Discover
+            <span class="nav-badge" id="discover-count">6</span>
+          </div>
+          <div class="nav-item" onclick="setTab('bookmarks')">
+            <span class="nav-icon">☆</span> Saved Stations
+            <span
+              class="nav-badge"
+              id="bookmark-count"
+              style="background: var(--yellow); color: #000"
+              >2</span
+            >
+          </div>
+          <div class="nav-item" onclick="setTab('contribute')">
+            <span class="nav-icon">⊕</span> Contribute
+          </div>
+        </nav>
+
+        <div class="sidebar-stats">
+          <div class="stat-label">SF Bay Area Stats</div>
+          <div class="stat-grid">
+            <div class="stat-item">
+              <div class="stat-val">1,204</div>
+              <div class="stat-name">Total Stations</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-val">89%</div>
+              <div class="stat-name">Online Now</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-val">2.1k</div>
+              <div class="stat-name">Contributors</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-val">350kW</div>
+              <div class="stat-name">Max Power</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="location-bar">
+          <div class="location-dot"></div>
+          <div class="location-text">
+            <strong>San Francisco, CA</strong>
+            37.784°N · 122.407°W
+          </div>
+        </div>
+      </aside>
+
+      <!-- ── MAP ── -->
+      <main class="map-area">
+        <!-- Toolbar -->
+        <div class="map-toolbar" id="main-toolbar">
+          <div class="search-wrap">
+            <span class="search-icon">⌕</span>
+            <input
+              class="search-input"
+              id="search-input"
+              placeholder="Search stations, addresses, or connector types…"
+              oninput="handleSearch(this.value)"
+            />
+          </div>
+          <div class="filter-pills">
+            <div class="pill" id="pill-CCS" onclick="toggleFilter('CCS')">CCS</div>
+            <div class="pill" id="pill-CHAdeMO" onclick="toggleFilter('CHAdeMO')">CHAdeMO</div>
+            <div class="pill" id="pill-Tesla" onclick="toggleFilter('Tesla')">Tesla</div>
+            <div class="pill" id="pill-J1772" onclick="toggleFilter('J1772')">J1772</div>
+          </div>
+          <div class="view-toggle">
+            <button class="view-btn active" id="vbtn-map" onclick="setView('map')">Map</button>
+            <button class="view-btn" id="vbtn-list" onclick="setView('list')">List</button>
+          </div>
+        </div>
+
+        <!-- SVG Map -->
+        <svg id="map-svg" viewBox="0 0 900 700" xmlns="http://www.w3.org/2000/svg"></svg>
+
+        <!-- List overlay -->
+        <div class="list-overlay" id="list-overlay"></div>
+
+        <div class="map-overlay-text" id="map-coords">37.784°N 122.407°W · San Francisco</div>
+
+        <!-- Tooltip -->
+        <div class="map-tooltip" id="map-tooltip"></div>
+      </main>
+
+      <!-- ── DETAIL PANEL ── -->
+      <aside class="detail-panel" id="detail-panel">
+        <div class="empty-state" id="empty-state">
+          <div class="empty-icon">⚡</div>
+          <div class="empty-title">Select a Station</div>
+          <div class="empty-sub">
+            Click any pin on the map<br />or browse the list to see details.
+          </div>
+        </div>
+        <div id="station-detail" style="display: none; flex-direction: column; flex: 1"></div>
+      </aside>
+    </div>
+
+    <!-- Modal -->
+    <div
+      class="modal-backdrop"
+      id="modal-backdrop"
+      style="display: none"
+      onclick="closeModal(event)"
+    >
+      <div class="modal" id="modal">
+        <div class="modal-header">
+          <div class="modal-title" id="modal-title">Report Issue</div>
+          <button class="modal-close" onclick="closeModalDirect()">✕</button>
+        </div>
+        <div class="modal-body" id="modal-body"></div>
+      </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast" style="display: none"></div>
+
+    <script>
+      const STATIONS = [
+        {
+          id: 1,
+          name: "Volta Station — Westfield",
+          address: "865 Market St, San Francisco",
+          distance: 0.3,
+          connectors: ["CCS", "CHAdeMO"],
+          power: 150,
+          access: "Public",
+          pricing: "Free with validation",
+          status: "available",
+          x: 420,
+          y: 370,
+          sponsored: true,
+          bookmarked: false,
+          views: 2341,
+        },
+        {
+          id: 2,
+          name: "ChargePoint Hub",
+          address: "1 Embarcadero Ctr, San Francisco",
+          distance: 0.8,
+          connectors: ["CCS", "J1772"],
+          power: 62,
+          access: "Public",
+          pricing: "$0.35 / kWh",
+          status: "available",
+          x: 620,
+          y: 200,
+          sponsored: false,
+          bookmarked: true,
+          views: 1203,
+        },
+        {
+          id: 3,
+          name: "Tesla Supercharger V3",
+          address: "680 Folsom St, San Francisco",
+          distance: 1.2,
+          connectors: ["Tesla", "CCS"],
+          power: 250,
+          access: "Tesla-only",
+          pricing: "$0.28 / kWh",
+          status: "busy",
+          x: 570,
+          y: 420,
+          sponsored: false,
+          bookmarked: false,
+          views: 4892,
+        },
+        {
+          id: 4,
+          name: "Blink Fast Charge",
+          address: "55 Cyril Magnin St",
+          distance: 1.7,
+          connectors: ["J1772", "CCS"],
+          power: 50,
+          access: "Public",
+          pricing: "$0.49 / kWh",
+          status: "available",
+          x: 300,
+          y: 310,
+          sponsored: false,
+          bookmarked: false,
+          views: 891,
+        },
+        {
+          id: 5,
+          name: "EVgo Rapid Charge",
+          address: "101 4th St, San Francisco",
+          distance: 2.1,
+          connectors: ["CCS", "CHAdeMO", "Tesla"],
+          power: 350,
+          access: "Public",
+          pricing: "$0.31 / kWh",
+          status: "offline",
+          x: 490,
+          y: 490,
+          sponsored: false,
+          bookmarked: true,
+          views: 3120,
+        },
+        {
+          id: 6,
+          name: "SF Municipal Garage",
+          address: "833 Mission St",
+          distance: 2.4,
+          connectors: ["J1772"],
+          power: 7.2,
+          access: "Public",
+          pricing: "$1.50 / hr",
+          status: "available",
+          x: 200,
+          y: 450,
+          sponsored: false,
+          bookmarked: false,
+          views: 567,
+        },
+      ];
+
+      const CONNECTOR_COLORS = {
+        CCS: "#00E5FF",
+        CHAdeMO: "#B39DDB",
+        Tesla: "#EF9A9A",
+        J1772: "#80CBC4",
+      };
+      const STATUS = {
+        available: { color: "#00E676", label: "Available", pulse: true },
+        busy: { color: "#FFD600", label: "Busy", pulse: false },
+        offline: { color: "#FF3D57", label: "Offline", pulse: false },
+      };
+
+      let stations = JSON.parse(JSON.stringify(STATIONS));
+      let selectedId = null;
+      let activeTab = "discover";
+      let viewMode = "map";
+      let filters = [];
+      let searchQuery = "";
+
+      // ── Rendering ──
+      function filtered() {
+        return stations.filter((s) => {
+          const q = searchQuery.toLowerCase();
+          const matchQ =
+            !q ||
+            s.name.toLowerCase().includes(q) ||
+            s.address.toLowerCase().includes(q) ||
+            s.connectors.some((c) => c.toLowerCase().includes(q));
+          const matchF = filters.length === 0 || filters.some((f) => s.connectors.includes(f));
+          return matchQ && matchF;
+        });
+      }
+
+      function renderMap() {
+        const svg = document.getElementById("map-svg");
+        const filt = filtered();
+        const ids = new Set(filt.map((s) => s.id));
+
+        let html = `
+    <defs>
+      <radialGradient id="bg" cx="50%" cy="50%" r="70%">
+        <stop offset="0%" stop-color="#0D1528"/>
+        <stop offset="100%" stop-color="#06080F"/>
+      </radialGradient>
+      <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+        <feGaussianBlur stdDeviation="4" result="blur"/>
+        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+      <filter id="glow2" x="-50%" y="-50%" width="200%" height="200%">
+        <feGaussianBlur stdDeviation="2" result="blur"/>
+        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+      <pattern id="grid" width="60" height="60" patternUnits="userSpaceOnUse">
+        <path d="M 60 0 L 0 0 0 60" fill="none" stroke="rgba(255,255,255,0.03)" stroke-width="1"/>
+      </pattern>
+    </defs>
+    <rect width="900" height="700" fill="url(#bg)"/>
+    <rect width="900" height="700" fill="url(#grid)"/>
+
+    <!-- Road network -->
+    <path d="M 0 350 Q 250 290 450 360 Q 650 430 900 380" stroke="rgba(255,255,255,0.07)" stroke-width="12" fill="none" stroke-linecap="round"/>
+    <path d="M 0 350 Q 250 290 450 360 Q 650 430 900 380" stroke="rgba(255,255,255,0.03)" stroke-width="20" fill="none" stroke-linecap="round"/>
+    <path d="M 150 0 Q 200 200 280 400 Q 340 560 380 700" stroke="rgba(255,255,255,0.06)" stroke-width="10" fill="none" stroke-linecap="round"/>
+    <path d="M 550 0 Q 590 180 570 400 Q 555 560 540 700" stroke="rgba(255,255,255,0.05)" stroke-width="8" fill="none" stroke-linecap="round"/>
+    <path d="M 0 520 Q 300 500 600 530 Q 750 545 900 520" stroke="rgba(255,255,255,0.04)" stroke-width="7" fill="none" stroke-linecap="round"/>
+    <path d="M 0 180 Q 400 160 900 200" stroke="rgba(255,255,255,0.04)" stroke-width="7" fill="none" stroke-linecap="round"/>
+    <path d="M 700 0 Q 720 300 700 700" stroke="rgba(255,255,255,0.04)" stroke-width="6" fill="none" stroke-linecap="round"/>
+
+    <!-- Water body hint -->
+    <ellipse cx="820" cy="120" rx="160" ry="90" fill="rgba(0,150,200,0.04)" />
+    <text x="800" y="115" font-size="9" fill="rgba(100,180,220,0.18)" font-family="DM Mono, monospace" text-anchor="middle">SF Bay</text>
+  `;
+
+        // Dimmed unfilt pins
+        stations
+          .filter((s) => !ids.has(s.id))
+          .forEach((s) => {
+            html += `<circle cx="${s.x}" cy="${s.y}" r="7" fill="${STATUS[s.status].color}" opacity="0.12"/>`;
+          });
+
+        // Active pins
+        filt.forEach((s) => {
+          const cfg = STATUS[s.status];
+          const isSel = s.id === selectedId;
+          const color = s.sponsored ? "#FFD600" : cfg.color;
+
+          if (cfg.pulse && !isSel) {
+            html += `<circle cx="${s.x}" cy="${s.y}" r="0" fill="none" stroke="${color}" stroke-width="1.5" opacity="0.6">
+        <animate attributeName="r" from="10" to="24" dur="2s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" from="0.6" to="0" dur="2s" repeatCount="indefinite"/>
+      </circle>`;
+          }
+          if (isSel) {
+            html += `<circle cx="${s.x}" cy="${s.y}" r="30" fill="${color}" opacity="0.08"/>
+               <circle cx="${s.x}" cy="${s.y}" r="22" fill="none" stroke="${color}" stroke-width="1.5" stroke-dasharray="5 4" opacity="0.5">
+                 <animateTransform attributeName="transform" type="rotate" from="0 ${s.x} ${s.y}" to="360 ${s.x} ${s.y}" dur="12s" repeatCount="indefinite"/>
+               </circle>`;
+          }
+          html += `
+      <g class="map-pin" onclick="selectStation(${s.id})" onmouseenter="showTooltip(event,${s.id})" onmouseleave="hideTooltip()" style="cursor:pointer">
+        <circle cx="${s.x}" cy="${s.y}" r="${isSel ? 14 : 10}" fill="${color}" filter="url(#glow)" opacity="${s.status === "offline" ? 0.45 : 1}"/>
+        <circle cx="${s.x}" cy="${s.y}" r="${isSel ? 6 : 4}" fill="#080B14"/>
+        ${s.sponsored ? `<text x="${s.x}" y="${s.y - 20}" text-anchor="middle" fill="#FFD600" font-size="9" font-weight="700" font-family="Barlow Condensed">★ AD</text>` : ""}
+      </g>`;
+        });
+
+        // User location
+        html += `
+    <circle cx="450" cy="355" r="8" fill="#00E5FF" filter="url(#glow2)"/>
+    <circle cx="450" cy="355" r="14" fill="none" stroke="#00E5FF" stroke-width="1.2" opacity="0.4"/>
+    <circle cx="450" cy="355" r="0" fill="none" stroke="#00E5FF" stroke-width="1" opacity="0.5">
+      <animate attributeName="r" from="8" to="28" dur="3s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" from="0.4" to="0" dur="3s" repeatCount="indefinite"/>
+    </circle>
+    <text x="450" y="378" text-anchor="middle" fill="#00E5FF" font-size="9" opacity="0.5" font-family="DM Mono, monospace">YOU</text>
+  `;
+
+        svg.innerHTML = html;
+      }
+
+      function renderList() {
+        const el = document.getElementById("list-overlay");
+        const filt = filtered();
+        let html = `<div style="font-size:10px;color:var(--text-faint);letter-spacing:0.12em;text-transform:uppercase;font-family:'DM Mono',monospace;margin-bottom:4px;padding:0 2px">${filt.length} stations found</div>`;
+        filt.forEach((s) => {
+          const cfg = STATUS[s.status];
+          const isSel = s.id === selectedId ? " selected" : "";
+          html += `
+      <div class="station-row${isSel}" onclick="selectStation(${s.id})">
+        <div style="width:10px;height:10px;border-radius:50%;background:${cfg.color};flex-shrink:0;box-shadow:0 0 8px ${cfg.color}"></div>
+        <div class="station-row-info">
+          <div class="station-row-name">${s.sponsored ? "★ " : ""}${s.name}</div>
+          <div class="station-row-meta">
+            <span style="color:${cfg.color}">${cfg.label}</span>
+            <span class="sep">·</span>
+            <span>${s.distance} mi</span>
+            <span class="sep">·</span>
+            ${s.connectors.map((c) => `<span style="color:${CONNECTOR_COLORS[c]};font-size:10px;font-weight:700">${c}</span>`).join(" ")}
+          </div>
+        </div>
+        <span class="station-row-power">${s.power}kW</span>
+      </div>`;
+        });
+        el.innerHTML = html;
+      }
+
+      function renderBookmarks() {
+        const el = document.getElementById("list-overlay");
+        const bm = stations.filter((s) => s.bookmarked);
+        document.getElementById("map-toolbar").style.display = "none";
+        document.getElementById("map-svg").style.display = "none";
+        el.classList.add("visible");
+        el.style.top = "0";
+
+        if (bm.length === 0) {
+          el.innerHTML = `<div class="empty-state"><div class="empty-icon">☆</div><div class="empty-title">No Saved Stations</div><div class="empty-sub">Bookmark stations from the map<br/>to find them here quickly.</div></div>`;
+          return;
+        }
+        let html = `<div style="font-size:10px;color:var(--text-faint);letter-spacing:0.12em;text-transform:uppercase;font-family:'DM Mono',monospace;margin-bottom:4px;padding:0 2px">${bm.length} saved stations</div>`;
+        bm.forEach((s) => {
+          const cfg = STATUS[s.status];
+          html += `
+      <div class="station-row" onclick="selectStation(${s.id})">
+        <div style="width:10px;height:10px;border-radius:50%;background:${cfg.color};flex-shrink:0"></div>
+        <div class="station-row-info">
+          <div class="station-row-name">${s.name}</div>
+          <div class="station-row-meta"><span style="color:${cfg.color}">${cfg.label}</span><span class="sep">·</span><span>${s.distance} mi</span></div>
+        </div>
+        <span style="color:var(--yellow);font-size:14px">★</span>
+      </div>`;
+        });
+        el.innerHTML = html;
+      }
+
+      function renderContribute() {
+        const el = document.getElementById("list-overlay");
+        document.getElementById("map-toolbar").style.display = "none";
+        document.getElementById("map-svg").style.display = "none";
+        el.classList.add("visible");
+        el.style.top = "0";
+
+        el.innerHTML = `
+    <div style="font-size:10px;color:var(--text-faint);letter-spacing:0.14em;text-transform:uppercase;font-family:'DM Mono',monospace;margin-bottom:16px">Community Contributions</div>
+    <div class="contrib-card" onclick="openModal('suggest')" style="border-color:rgba(0,230,118,0.15)">
+      <div class="contrib-icon" style="color:#00E676">＋</div>
+      <div><div class="contrib-title" style="color:#00E676">Suggest a Station</div><div class="contrib-desc">Know a charger we're missing? Add it to the community map.</div></div>
+      <div class="contrib-arrow">›</div>
+    </div>
+    <div class="contrib-card" onclick="openModal('report')" style="border-color:rgba(255,107,53,0.15)">
+      <div class="contrib-icon" style="color:var(--orange)">⚠</div>
+      <div><div class="contrib-title" style="color:var(--orange)">Report an Issue</div><div class="contrib-desc">Broken hardware, wrong connector info, or access problems.</div></div>
+      <div class="contrib-arrow">›</div>
+    </div>
+    <div class="contrib-card" onclick="showToast('Station editor coming soon!')" style="border-color:rgba(0,229,255,0.1)">
+      <div class="contrib-icon" style="color:var(--cyan)">✏</div>
+      <div><div class="contrib-title" style="color:var(--cyan)">Edit Station Data</div><div class="contrib-desc">Improve connector types, pricing info, and access details.</div></div>
+      <div class="contrib-arrow">›</div>
+    </div>
+
+    <div style="margin-top:28px;background:rgba(0,229,255,0.04);border:1px solid rgba(0,229,255,0.1);border-radius:14px;padding:20px">
+      <div style="font-size:9px;color:rgba(0,229,255,0.5);letter-spacing:0.14em;text-transform:uppercase;margin-bottom:14px;font-family:'DM Mono',monospace">SF Community Stats</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        ${[
+          ["1,204", "Stations reported"],
+          ["347", "Issues resolved"],
+          ["89", "Suggestions added"],
+          ["2.1k", "Active contributors"],
+        ]
+          .map(
+            ([v, l]) => `
+          <div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:800;color:var(--cyan)">${v}</div>
+            <div style="font-size:11px;color:var(--text-faint)">${l}</div>
+          </div>`,
+          )
+          .join("")}
+      </div>
+    </div>`;
+      }
+
+      function renderDetail(id) {
+        const s = stations.find((x) => x.id === id);
+        if (!s) return;
+        document.getElementById("empty-state").style.display = "none";
+        const det = document.getElementById("station-detail");
+        det.style.display = "flex";
+
+        const cfg = STATUS[s.status];
+        const pw = Math.min((s.power / 350) * 100, 100);
+        const pwColor = s.power >= 150 ? "#00E5FF" : s.power >= 50 ? "#00E676" : "#FFD600";
+
+        det.innerHTML = `
+    ${s.sponsored ? `<div class="sponsored-banner">★ SPONSORED LOCATION</div>` : ""}
+    <div class="panel-header">
+      <div class="panel-title">Station Detail</div>
+      <div class="panel-station-name">${s.name}</div>
+      <div class="panel-address">${s.address}</div>
+    </div>
+    <div class="panel-body">
+
+      <div class="section">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+          <div class="status-badge" style="background:${cfg.color}18;border:1px solid ${cfg.color}44">
+            <div class="status-dot" style="background:${cfg.color};${cfg.pulse ? `animation:pulsering 2s infinite` : ""};box-shadow:0 0 8px ${cfg.color}"></div>
+            <span style="color:${cfg.color};font-size:12px;font-weight:700">${cfg.label}</span>
+          </div>
+          <span style="font-size:12px;color:var(--text-faint)">${s.distance} mi away</span>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-label">Charging Power</div>
+        <div class="power-row">
+          <div class="power-bar-wrap">
+            <div class="power-bar-fill" style="width:${pw}%;background:${pwColor};box-shadow:0 0 10px ${pwColor}88"></div>
+          </div>
+          <span class="power-label" style="color:${pwColor}">${s.power} kW</span>
+        </div>
+        <div style="font-size:10px;color:var(--text-faint);margin-top:4px">
+          ${s.power >= 150 ? "DC Fast Charge" : s.power >= 50 ? "Level 2 AC" : "Level 1 AC"}
+          · up to ${s.power >= 150 ? "80% in ~30 min" : s.power >= 50 ? "80% in ~2 hrs" : "80% in ~8 hrs"}
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-label">Connector Types</div>
+        <div class="connector-row">
+          ${s.connectors.map((c) => `<div class="connector-tag" style="color:${CONNECTOR_COLORS[c]};border-color:${CONNECTOR_COLORS[c]}55;background:${CONNECTOR_COLORS[c]}12">${c}</div>`).join("")}
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-label">Station Info</div>
+        <div class="info-grid">
+          <div class="info-cell"><div class="info-cell-label">Access</div><div class="info-cell-val">${s.access}</div></div>
+          <div class="info-cell"><div class="info-cell-label">Distance</div><div class="info-cell-val">${s.distance} mi</div></div>
+          <div class="info-cell"><div class="info-cell-label">Pricing</div><div class="info-cell-val">${s.pricing}</div></div>
+          <div class="info-cell"><div class="info-cell-label">Network</div><div class="info-cell-val">${s.name.split(" ")[0]}</div></div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-label">Actions</div>
+        <div class="action-grid">
+          <button class="action-btn action-btn-primary" onclick="showToast('Opening directions…')">↗ Directions</button>
+          <button class="action-btn action-btn-secondary ${s.bookmarked ? "saved" : ""}" id="bm-btn" onclick="toggleBookmark(${s.id})">
+            ${s.bookmarked ? "★ Saved" : "☆ Save"}
+          </button>
+        </div>
+        <button class="action-btn action-btn-danger" onclick="openModal('report')">⚠ Report an Issue</button>
+      </div>
+
+      <div class="section">
+        <div class="section-label">Analytics</div>
+        <div class="analytics-bar">
+          <div class="analytics-cell"><div class="analytics-val">${s.views.toLocaleString()}</div><div class="analytics-key">Views</div></div>
+          <div class="analytics-cell"><div class="analytics-val">48</div><div class="analytics-key">Bookmarks</div></div>
+          <div class="analytics-cell"><div class="analytics-val">2</div><div class="analytics-key">Reports</div></div>
+        </div>
+      </div>
+
+    </div>`;
+      }
+
+      // ── State actions ──
+      function selectStation(id) {
+        selectedId = id;
+        renderMap();
+        renderDetail(id);
+        if (viewMode === "list") renderList();
+      }
+
+      function toggleBookmark(id) {
+        const s = stations.find((x) => x.id === id);
+        s.bookmarked = !s.bookmarked;
+        document.getElementById("bookmark-count").textContent = stations.filter(
+          (x) => x.bookmarked,
+        ).length;
+        renderDetail(id);
+        showToast(s.bookmarked ? "Station bookmarked ⚡" : "Bookmark removed");
+      }
+
+      function setTab(tab) {
+        activeTab = tab;
+        document
+          .querySelectorAll(".nav-item")
+          .forEach((el, i) =>
+            el.classList.toggle("active", ["discover", "bookmarks", "contribute"][i] === tab),
+          );
+        document.getElementById("map-toolbar").style.display = "flex";
+        document.getElementById("map-svg").style.display = "block";
+        const lo = document.getElementById("list-overlay");
+        lo.classList.remove("visible");
+        lo.style.top = "80px";
+
+        if (tab === "discover") {
+          renderMap();
+          if (viewMode === "list") {
+            lo.classList.add("visible");
+            renderList();
+          }
+        } else if (tab === "bookmarks") {
+          renderBookmarks();
+        } else if (tab === "contribute") {
+          renderContribute();
+        }
+      }
+
+      function setView(v) {
+        viewMode = v;
+        document.getElementById("vbtn-map").classList.toggle("active", v === "map");
+        document.getElementById("vbtn-list").classList.toggle("active", v === "list");
+        const lo = document.getElementById("list-overlay");
+        if (v === "list") {
+          lo.classList.add("visible");
+          renderList();
+        } else {
+          lo.classList.remove("visible");
+          renderMap();
+        }
+      }
+
+      function toggleFilter(f) {
+        const el = document.getElementById("pill-" + f);
+        if (filters.includes(f)) {
+          filters = filters.filter((x) => x !== f);
+          el.className = "pill";
+        } else {
+          filters.push(f);
+          el.className = "pill active-" + f.toLowerCase();
+        }
+        renderMap();
+        if (viewMode === "list") renderList();
+      }
+
+      function handleSearch(q) {
+        searchQuery = q;
+        renderMap();
+        if (viewMode === "list") renderList();
+      }
+
+      // ── Tooltip ──
+      function showTooltip(event, id) {
+        const s = stations.find((x) => x.id === id);
+        const tt = document.getElementById("map-tooltip");
+        const cfg = STATUS[s.status];
+        tt.innerHTML = `<span style="color:${cfg.color};margin-right:6px">●</span>${s.name} · <span style="color:var(--cyan);font-family:'DM Mono',monospace">${s.power}kW</span>`;
+        tt.style.display = "block";
+        const rect = document.getElementById("map-svg").getBoundingClientRect();
+        // Approximate SVG coordinate to screen
+        const svgW = 900,
+          svgH = 700;
+        const screenX = (s.x / svgW) * rect.width + rect.left;
+        const screenY = (s.y / svgH) * rect.height + rect.top;
+        tt.style.left = screenX - tt.offsetWidth / 2 + "px";
+        tt.style.top = screenY - 52 + "px";
+      }
+      function hideTooltip() {
+        document.getElementById("map-tooltip").style.display = "none";
+      }
+
+      // ── Modal ──
+      function openModal(type) {
+        const backdrop = document.getElementById("modal-backdrop");
+        const title = document.getElementById("modal-title");
+        const body = document.getElementById("modal-body");
+        backdrop.style.display = "flex";
+
+        if (type === "report") {
+          title.textContent = "Report an Issue";
+          body.innerHTML = `
+      <div class="form-group">
+        <div class="form-label">Issue Type</div>
+        <div class="radio-group">
+          ${[
+            "Charger offline / broken",
+            "Wrong connector info",
+            "Pricing incorrect",
+            "Access blocked",
+            "Safety concern",
+            "Other",
+          ]
+            .map(
+              (i) => `
+            <label class="radio-option">
+              <input type="radio" name="issue" value="${i}"/>
+              <span>${i}</span>
+            </label>`,
+            )
+            .join("")}
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Additional Details</label>
+        <textarea class="form-textarea" placeholder="Describe the issue…"></textarea>
+      </div>
+      <button class="btn-submit" style="background:linear-gradient(135deg,#FF6B35,#FF3D57);color:#fff" onclick="submitModal('Issue reported — thanks for helping the community!')">Submit Report</button>`;
+        } else {
+          title.textContent = "Suggest a Station";
+          body.innerHTML = `
+      ${[
+        ["Station Name", "text", "e.g. Volta at Union Square"],
+        ["Full Address", "text", "Street address, city, state"],
+        ["Connector Types", "text", "CCS, CHAdeMO, Tesla…"],
+        ["Estimated Power (kW)", "number", "e.g. 150"],
+      ]
+        .map(
+          ([l, t, p]) => `
+        <div class="form-group">
+          <label class="form-label">${l}</label>
+          <input type="${t}" class="form-input" placeholder="${p}"/>
+        </div>`,
+        )
+        .join("")}
+      <button class="btn-submit" style="background:linear-gradient(135deg,#00E676,#00B248);color:#080B14" onclick="submitModal('Station suggestion submitted — thank you!')">Submit Station</button>`;
+        }
+      }
+
+      function closeModal(e) {
+        if (e.target === document.getElementById("modal-backdrop")) closeModalDirect();
+      }
+      function closeModalDirect() {
+        document.getElementById("modal-backdrop").style.display = "none";
+      }
+      function submitModal(msg) {
+        closeModalDirect();
+        showToast(msg);
+      }
+
+      // ── Toast ──
+      let toastTimer;
+      function showToast(msg) {
+        const t = document.getElementById("toast");
+        t.textContent = msg;
+        t.style.display = "block";
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => (t.style.display = "none"), 2800);
+      }
+
+      // ── Init ──
+      renderMap();
+      renderDetail(null);
+    </script>
+  </body>
+</html>
